@@ -1,0 +1,6 @@
+<!-- Activate lateral bar ======================================= -->
+{{left_sidebar_enabled=True,('message' in globals())}}
+{{extend 'layout2.html'}}
+<h1 align='center'>Editar productos del pedido</h1>
+<h4 align='center'>Busca el pedido que necesitar editar y cambia lo que necesites</h4>
+{{=BEAUTIFY(response._vars)}}

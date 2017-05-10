@@ -1,0 +1,38 @@
+This Uses python 2.7.13
+For windows install python downloading the installer from
+https://www.python.org/downloads/release/python-2713/
+
+Even if the windows is 64 bits download this release:
+"Windows x86 MSI installer"
+
+Run the file ... 
+
+Once installed python, You will need Python Win32 extensions to use the web2py taskbar or Windows service. 
+You can install pywin32 from: http://starship.python.net/~skippy/win32/Downloads.html.
+
+for web2py installation:
+https://www.packtpub.com/mapt/book/web-development/9781849515467/1/ch01lvl1sec09/installing-web2py-on-windows-(from-source-code)
+
+DEPENDENCIES
+This app requieres prettytable as a module 
+
+for win
+To install windows>start> then type "cmd", go to c:\Python27\Scripts\easy_install prettytable
+http://stackoverflow.com/questions/32343072/getting-syntaxerror-when-installing-twilio-in-the-windows-command-line-interfa
+
+for mac user
+easy_install is a shell command. You don't need to put it in a python script. Type that straight into a bash (or other) shell, as long as easy_install is in your path.
+http://stackoverflow.com/questions/624492/why-am-i-getting-an-invalid-syntax-easy-install-error
+
+
+To check if it is installed...
+https://github.com/kxxoling/PTable
+Type this on python command line or IDLE:
+>> help('modules')
+
+RUN WEB2PY
+win double click to this..
+c:\web2py\web2py.py
+
+CHECK THE SYSTEM DATE FORMAT (how pc displays the time)
+this app requires: YYYY-MM-DD HH:MM:SS

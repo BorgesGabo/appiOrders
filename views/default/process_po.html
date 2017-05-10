@@ -1,0 +1,19 @@
+<!-- Activate lateral bar ======================================= -->
+{{left_sidebar_enabled=True,('message' in globals())}}
+{{extend 'layout2.html'}}
+<h1 align='center'>Detalle del pedido</h1>
+<h4 align='center'>Ingresa los productos, al terminar guarda y haz clic en siguiente para sacar el consolidado</h4>
+<!-- Insert the form ======================================= -->
+<div>
+{{=form}}
+</div>
+<!-- Insert the message ======================================= -->
+<div>
+{{=msg}}
+</div>
+<!-- Insert results ======================================= -->
+<div>
+{{=results}}
+</div>
+
+
