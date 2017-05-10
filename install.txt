@@ -36,4 +36,3 @@ c:\web2py\web2py.py
 
 CHECK THE SYSTEM DATE FORMAT (how pc displays the time)
 this app requires: YYYY-MM-DD HH:MM:SS
-this is a test
