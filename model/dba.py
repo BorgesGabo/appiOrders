@@ -13,8 +13,8 @@ db.define_table('wp',
 # define customer
 db.define_table(
     'customer',
-    Field('full_name', label='Nombre'),
-    Field('phone', label='telefono'),
+    Field('full_name', label='Nombre:'),
+    Field('phone', label='Telefono:'),
     format='%(full_name)s')
 
 # define category
@@ -38,22 +38,22 @@ db.define_table(
 # define po
 db.define_table(
     'po',
-    Field('po_number', type='integer'),
-    Field('date', type='datetime'),
-    Field('customer_id', 'reference customer'),
+    Field('po_number', type='integer', label='No. Pedido:'),
+    Field('date', type='datetime', label='Fecha:'),
+    Field('customer_id', 'reference customer', label='Cliente:'),
     format='%(po_number)s')
 
 # define product
 db.define_table(
     'product',
-    Field('name'),
-    Field('woo_ref'),
-    Field('pres'),
-    Field('unit'),
-    Field('sku'),
-    Field('odoo_ref'),
-    Field('category_id', 'reference category'),
-    Field('supplier_id', 'reference supplier'),
+    Field('name', label='Nombre del producto:'),
+    Field('woo_ref', label='Referencia Woocommerce:'),
+    Field('pres', label='Presentacion:'),
+    Field('unit', label='unidades:'),
+    Field('sku', label='sku:'),
+    Field('odoo_ref', label='referencia odoo:'),
+    Field('category_id', 'reference category', label='Categoria:'),
+    Field('supplier_id', 'reference supplier', label='Proveedor'),
     Field('odoo_ref'),
     format='%(name)s')
 
