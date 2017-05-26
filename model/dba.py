@@ -13,8 +13,8 @@ db.define_table('wp',
 # define customer
 db.define_table(
     'customer',
-    Field('full_name'),
-    Field('phone'),
+    Field('full_name', label='Nombre'),
+    Field('phone', label='telefono'),
     format='%(full_name)s')
 
 # define category
