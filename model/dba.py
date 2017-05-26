@@ -53,15 +53,15 @@ db.define_table(
     Field('sku', label='sku:'),
     Field('odoo_ref', label='referencia odoo:'),
     Field('category_id', 'reference category', label='Categoria:'),
-    Field('supplier_id', 'reference supplier', label='Proveedor'),
+    Field('supplier_id', 'reference supplier', label='Proveedor:'),
     Field('odoo_ref'),
     format='%(name)s')
 
 db.define_table(
     'po_detail',
-    Field('po_id', 'reference po'),
-    Field('product_id', 'reference product'),
-    Field('quantity', default='1'),
+    Field('po_id', 'reference po', label='No. de Pedido:'),
+    Field('product_id', 'reference product', label='Producto:'),
+    Field('quantity', default='1', label='Cantidad:'),
     )
 
 # -----------------------------
