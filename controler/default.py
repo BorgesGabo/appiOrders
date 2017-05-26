@@ -12,7 +12,7 @@ import datetime
 from prettytable import PrettyTable
 from prettytable import  ALL
 
-def process_po():
+def processPo():
     # this function creates a form with date types and query the db between the 2 dates
     # this function is an extract from http://brunorocha.org/python/web2py/search-form-with-web2py.html
     # default values to keep the form when submitted
