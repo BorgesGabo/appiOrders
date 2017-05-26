@@ -165,7 +165,7 @@ def loadFormPoQuery():
                                    TAG.button('actualizar listado', _type="button",
                                               _onClick="parent.location='%s'" % URL(loadFormPoQuery)),
                                    TAG.button('siguiente', _type="button",
-                                              _onClick=" parent.location='%s'" % URL(orderd))])
+                                              _onClick=" parent.location='%s'" % URL(loadFormPoDetailQuery))])
     if form.process().accepted:
         response.flash = 'order accepted'
     elif form.errors:
