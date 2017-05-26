@@ -12,5 +12,5 @@
 <!-- Insert the query ======================================= -->
 <div align='center'>
 {{=ordenes}}
-    
+
 </div>

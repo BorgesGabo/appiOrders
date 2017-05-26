@@ -3,14 +3,15 @@
 {{extend 'layout2.html'}}
 <h1 align='center'>Detalle del pedido</h1>
 <h4 align='center'>Ingresa los productos, al terminar guarda y haz clic en siguiente para sacar el consolidado</h4>
-
 <!-- Insert the form ======================================= -->
 <div>
 {{=form}}
 </div>
-
-<!-- Insert the query ======================================= -->
-<div align='center'>
-{{=ordenes}}
-    
+<!-- Insert the message ======================================= -->
+<div>
+{{=msg}}
+</div>
+<!-- Insert results ======================================= -->
+<div>
+{{=results}}
 </div>
