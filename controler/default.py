@@ -75,25 +75,25 @@ def summaryChart(query):
 
     # ***************************************QUERY A,B *****************************************
     a_product_id_lst = db(query).select(db.product.id, db.product.name,
-                                        groupby='product.name').as_list()  # obtiene id, nombre productos query sin repetir
-    for i in range(len(a_product_id_lst)):  # iterando sobre A: a_products_lst
-        query_a = query
-        query_a &= db.product.id == a_product_id_lst[i]['id']
-        for j in range(n):  # iterando sobre orders_query_lst
-            query_b = query_a
+                                        groupby='product.name').as_list()                       # obtiene id, nombre productos query sin repetir
+    for i in range(len(a_product_id_lst)):                                                      # iterando sobre A: a_products_lst
+        query_a = query                                                                         # saca una copia del query original query_a
+        query_a &= db.product.id == a_product_id_lst[i]['id']                                   # agrega una columna a a_query con el product_id
+        for j in range(n):                                                                      # iterando sobre orders_query_lstb "lista de pedidos"
+            query_b = query_a                                                                   #saca copia del query_a y agrega el po_id
             query_b &= db.po.id == orders_query_lst[j]['id']
-            # print query_b                                               # impresion de prueba
-            bj_lst = db(query_b).select(db.po_detail.quantity, orderby='po.po_number',
-                                        groupby='po.po_number').as_list()  # obtiene cantidad
+            # print query_b                                                                     # impresion de prueba
+            bj_lst = db(query_b).select(db.po_detail.quantity, orderby='po.po_number',          # imprime la cantidad por producto
+                                        groupby='po.po_number').as_list()                       # obtiene cantidad
             qtyj_lst = db(query_b).select(db.po_detail.quantity, orderby='po.po_number',
-                                          groupby='po.po_number').as_list()  # obtiene cantidad
+                                          groupby='po.po_number').as_list()                     # obtiene cantidad
             presj_lst = db(query_b).select(db.product.pres, orderby='po.po_number',
-                                           groupby='po.po_number').as_list()  # obtiene pres
-            if len(bj_lst) == 0:  # si el pedido no tiene este producto ponga 0
+                                           groupby='po.po_number').as_list()                    # obtiene pres por producto
+            if len(bj_lst) == 0:                                                                # si el pedido no tiene este producto ponga 0
                 bj_lst = 0
                 b_lst.append(0)
             else:
-                b_lst.append(int(bj_lst[0]['quantity']))  # de lo contrario ponga el valor de bj_lst
+            b_lst.append(int(bj_lst[0]['quantity']))                                            # de lo contrario ponga el valor de bj_lst de la col. quantity
 
             if len(qtyj_lst) == 0:  # si no hay cantidad en ese pedido ponga un cero
                 qtyj_lst = 0
