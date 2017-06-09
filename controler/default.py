@@ -277,23 +277,15 @@ def htmlFloroTable(n, floro_product_lst, orders_query_lst, z_lst):
 
     # 0. obtiene el nombre de los pedidos para el headerRow
     header = ["PRODUCTO"]
-    # for x in orders_query_lst:
-    #   header.append(str(x['po_number']))
-
     header.append("TOTAL")
     header.append("LBS")
     # print header
+    # Crea el objeto pyxl
+
     # 1. obtiene a_lst iterando sobre a_product_id_lst
     a_lst = []
-    # print a_product_id_lst
-    # print len(a_product_id_lst)
     for x in floro_product_lst:
         a_lst.append(str(x['name']))
-        # print x['name']
-    # print ("floro_lst es: ",a_lst)
-    # print ("n el numero de pedidos es: ", n)
-    # print ("tamano de z es: ", len(z_lst))
-    # print ("tamano de a es: ", len(a_lst))
 
     # 2. crea una lista de listas
     headerRow = []
@@ -307,19 +299,14 @@ def htmlFloroTable(n, floro_product_lst, orders_query_lst, z_lst):
         else:
             inicio = x * n
             fin = inicio + n
-
         print ("inicio ", inicio)
         print ("fin es: ", fin)
         summaryCharRows = []
         summaryCharRows.append(a_lst[x])
-        # for y in range (inicio, fin):
-        # summaryCharRows.append(z_lst[y])
-        # summaryCharRows.append("        ")
-
         summaryCharRows.append(sum(z_lst[inicio:fin]))
         summaryCharRows.append("        ")
         table.append(summaryCharRows)
-        # print ("table is:" , table)                                        #imprime la tabla como una lista de listas
+        print ("table floro is:", table)  # imprime la tabla como una lista de listas
 
     # 3. crea el archivo html
 
@@ -329,7 +316,7 @@ def htmlFloroTable(n, floro_product_lst, orders_query_lst, z_lst):
     html = """
     <html> 
         <head>
-            <title>Tabla consolidado de los pedidos a procesar</title>
+            <title>Pedido para Floro</title>
             <style type="text/css">
                 /**/
                 h2 {font-family:Helvetica; color: #545454}
@@ -361,10 +348,9 @@ def htmlFloroTable(n, floro_product_lst, orders_query_lst, z_lst):
                 table {  border-collapse: collapse;}
                 td:not(:first-child) {width:80px} /*all columns except the first*/
 
-
             </style>
         <head>
-        <body>                 
+        <body>
             <h2>%s</h2>
             Aqui va texto adicional
             <strong> %s </strong>
@@ -436,7 +422,7 @@ def htmlEduardoTable(n, eduardo_product_lst, orders_query_lst, z_lst):
     html = """
     <html> 
         <head>
-            <title>Tabla consolidado de los pedidos a procesar</title>
+            <title>Pedido para Eduardo</title>
             <style type="text/css">
                 /**/
                 h2 {font-family:Helvetica; color: #545454}
