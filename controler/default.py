@@ -8,6 +8,8 @@
 # - download is for downloading files uploaded in the db (does streaming)
 # -------------------------------------------------------------------------
 import datetime
+import pytablewriter
+import HTML
 
 from prettytable import PrettyTable
 from prettytable import ALL
@@ -112,7 +114,8 @@ def summaryChart(query):
     # print (str('j is:'), j)                                     #impresion de prueba
     # print (str('bj_lst is:'), bj_lst)                           #impresion de prueba
     # print (str('b_lst is:'), b_lst)                             #impresion de prueba
-
+    # ************************************* SACA LA TABLA EN VERSION HTML ******************************
+    htmlTable(n,a_product_id_lst,z_lst)
     # ************************************* IMPRIME TABLA RESUMEN **************************************
     a_product_name_lst = db(query).select(db.product.name,
                                           groupby='product.name').as_list()  # obtiene lista de nombres productos no repetidos en rango
@@ -139,7 +142,116 @@ def summaryChart(query):
         w.write(str('ESTE ES EL CONSOLIDADO DE LOS SIGUIENTES PEDIDOS:'))
         w.write('\n')
         w.write(str(summary_table))
+    writer = pytablewriter.HtmlTableWriter()
+    writer.table_name = "consolidado"
+    writer.header_list =
     return
+
+
+def htmlTable(n, a_product_id_lst, z_lst):
+    # *********************************************** HTML
+    # esta funcion crea la tabla html
+
+    # 0. obtiene el nombre de los pedidos para el headerRow
+    header = ["PRODUCTO"]
+    for x in orders_query_lst:
+        header.append(str(x['po_number']))
+        header.append("ENTREGADO ")
+    header.append("TOTAL")
+    header.append("ENTREGADO")
+    # print header
+    # 1. obtiene a_lst iterando sobre a_product_id_lst
+    a_lst = []
+    # print a_product_id_lst
+    # print len(a_product_id_lst)
+    for x in a_product_id_lst:
+        a_lst.append(str(x['name']))
+        # print x['name']
+    print a_lst
+    print ("n es: ", n)
+    print ("tamano de z es: ", len(z_lst))
+    print ("tamano de a es: ", len(a_lst))
+
+    # 2. crea una lista de listas
+    headerRow = []
+    summaryCharRows = []
+    table = []
+
+    for x in range(len(a_lst)):  # iterando sobre los productos
+        if x == 0:
+            inicio = 0
+            fin = 0 + n
+        else:
+            inicio = x * n
+            fin = inicio + n
+
+        print ("inicio ", inicio)
+        print ("fin es: ", fin)
+        summaryCharRows = []
+        summaryCharRows.append(a_lst[x])
+        for y in range(inicio, fin):
+            summaryCharRows.append(z_lst[y])
+            summaryCharRows.append("        ")
+
+        summaryCharRows.append(sum(z_lst[inicio:fin]))
+        summaryCharRows.append("        ")
+        table.append(summaryCharRows)
+        print ("table is:", table)
+
+    # 3. crea el archivo html
+
+    htmlcode = HTML.table(table, header_row=header)  # crea el codigo html de la tabla
+    print htmlcode
+    myText = "Este es el consolidado de la fecha"
+    html = """
+        <html> 
+            <head>
+                <title>Tabla consolidado de los pedidos a procesar</title>
+                <style type="text/css">
+                    /**/
+                    h2 {font-family:Helvetica; color: #545454}
+                    /* Changes the font family */
+                    table {font-family:Helvetica;}
+
+                    /* Make cells a bit taller and set border color */
+                    td, th { border: 1px solid #696969; height: 30px; text-align: left;}
+
+                    th {font-size: small; /*font size for header row*/
+                    font-weight: bold; /* Make sure they're bold */
+                    color:#696969; /*font color*/
+
+    }
+
+                    /* Changes the background color of every odd row to light gray */
+                    /*table th:nth-child(1) { font-weight: bold}*/
+
+                    /* Changes the background color of every odd row to light gray */
+                    /*table tr:nth-of-type(odd) {  background-color: #dbdbdb;}*/
+
+                    /* Changes the background color of every odd column to light gray */
+                    table td:nth-of-type(even) {  background-color: #dbdbdb;}
+
+                    /* Changes the weight of each td cell within each odd row to bold */
+                    table tr:nth-of-type(odd) td {  font-weight: bold;}
+
+                    /* Collapses table borders to make the table appear continuous */
+                    table {  border-collapse: collapse;}
+                    td:not(:first-child) {width:80px} /*all columns except the first*/
+
+
+                </style>
+            <head>
+            <body>                 
+                <h2>%s</h2>
+                Aqui va texto adicional
+                <strong> %s </strong>
+            <body>
+        <html>
+        """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
+    f = open("file.html", "w")  # crea archivo
+    f.write(html)  # Escribe en el archivo
+    f.close()  # Guarda archivo
+    # ***********************************************
 
 
 def loadFormPoDetailQuery():
