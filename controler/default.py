@@ -8,7 +8,6 @@
 # - download is for downloading files uploaded in the db (does streaming)
 # -------------------------------------------------------------------------
 import datetime
-import pytablewriter
 import HTML
 
 from prettytable import PrettyTable
@@ -67,7 +66,20 @@ def summaryChart(query):
     query &= db.po.po_number<2432'''  # quitar comillas si quiere probar desde la linea de comandos
 
     orders_query_lst = db(query).select(db.po.id, db.po.po_number,
-                                        groupby='po.po_number').as_list()  # obtiene id de los pedidos del query
+                                        groupby='po.po_number').as_list()  # obtiene id de los pedidos del query y lo convierte en una lista
+
+    # obtiene los productos que son de floro
+    query_floro = query  # modifica la query para sacar los productos de proveedor floriberto
+    query_floro &= db.product.supplier_id == 2
+    floro_product_lst = db(query_floro).select(db.product.id, db.product.name,
+                                               groupby='product.name').as_list()
+
+    # obtiene los productos que son de eduardo
+    query_eduardo = query  # modifica la query para sacar los productos de proveedor floriberto
+    query_eduardo &= db.product.supplier_id == 1
+    eduardo_product_lst = db(query_eduardo).select(db.product.id, db.product.name,
+                                                   groupby='product.name').as_list()
+
     n = len(orders_query_lst)  # obtiene el numero de pedidos de query
     d_lst = [str(x['po_number']) + '|Recibido' for x in
              orders_query_lst]  # obtiene las referencias de los pedidos del query
@@ -77,25 +89,25 @@ def summaryChart(query):
 
     # ***************************************QUERY A,B *****************************************
     a_product_id_lst = db(query).select(db.product.id, db.product.name,
-                                        groupby='product.name').as_list()                       # obtiene id, nombre productos query sin repetir
-    for i in range(len(a_product_id_lst)):                                                      # iterando sobre A: a_products_lst
-        query_a = query                                                                         # saca una copia del query original query_a
-        query_a &= db.product.id == a_product_id_lst[i]['id']                                   # agrega una columna a a_query con el product_id
-        for j in range(n):                                                                      # iterando sobre orders_query_lstb "lista de pedidos"
-            query_b = query_a                                                                   #saca copia del query_a y agrega el po_id
+                                        groupby='product.name').as_list()  # obtiene id, nombre productos query sin repetir
+    for i in range(len(a_product_id_lst)):  # iterando sobre A: a_products_lst
+        query_a = query
+        query_a &= db.product.id == a_product_id_lst[i]['id']
+        for j in range(n):  # iterando sobre orders_query_lst
+            query_b = query_a
             query_b &= db.po.id == orders_query_lst[j]['id']
-            # print query_b                                                                     # impresion de prueba
-            bj_lst = db(query_b).select(db.po_detail.quantity, orderby='po.po_number',          # imprime la cantidad por producto
-                                        groupby='po.po_number').as_list()                       # obtiene cantidad
+            # print query_b                                               # impresion de prueba
+            bj_lst = db(query_b).select(db.po_detail.quantity, orderby='po.po_number',
+                                        groupby='po.po_number').as_list()  # obtiene cantidad
             qtyj_lst = db(query_b).select(db.po_detail.quantity, orderby='po.po_number',
-                                          groupby='po.po_number').as_list()                     # obtiene cantidad
+                                          groupby='po.po_number').as_list()  # obtiene cantidad
             presj_lst = db(query_b).select(db.product.pres, orderby='po.po_number',
-                                           groupby='po.po_number').as_list()                    # obtiene pres por producto
-            if len(bj_lst) == 0:                                                                # si el pedido no tiene este producto ponga 0
+                                           groupby='po.po_number').as_list()  # obtiene pres
+            if len(bj_lst) == 0:  # si el pedido no tiene este producto ponga 0
                 bj_lst = 0
                 b_lst.append(0)
             else:
-            b_lst.append(int(bj_lst[0]['quantity']))                                            # de lo contrario ponga el valor de bj_lst de la col. quantity
+                b_lst.append(int(bj_lst[0]['quantity']))  # de lo contrario ponga el valor de bj_lst
 
             if len(qtyj_lst) == 0:  # si no hay cantidad en ese pedido ponga un cero
                 qtyj_lst = 0
@@ -110,12 +122,18 @@ def summaryChart(query):
     z_lst = []
     z_lst = [qty_lst * pres_lst for qty_lst, pres_lst in
              zip(qty_lst, pres_lst)]  # calcula pres*qty para cada uno de los elementos de la lista
-    # print z_lst
+    print ("z_lst es: ", z_lst)
+    # print ("query_orders_lst is: " ,orders_query_lst)            #impresion de prueba
     # print (str('j is:'), j)                                     #impresion de prueba
     # print (str('bj_lst is:'), bj_lst)                           #impresion de prueba
     # print (str('b_lst is:'), b_lst)                             #impresion de prueba
-    # ************************************* SACA LA TABLA EN VERSION HTML ******************************
-    htmlTable(n,a_product_id_lst,z_lst)
+    # *************************************LLAMA LA FUNCION QUE IMPRIME HTML****************************
+    htmlTable(n, a_product_id_lst, orders_query_lst, z_lst)
+    # *************************************LLAMA LA FUNCION QUE IMPRIME HTML FLORO****************************
+    htmlFloroTable(n, floro_product_lst, orders_query_lst, z_lst)
+    # *************************************LLAMA LA FUNCION QUE IMPRIME HTML FLORO****************************
+    htmlEduardoTable(n, eduardo_product_lst, orders_query_lst, z_lst)
+
     # ************************************* IMPRIME TABLA RESUMEN **************************************
     a_product_name_lst = db(query).select(db.product.name,
                                           groupby='product.name').as_list()  # obtiene lista de nombres productos no repetidos en rango
@@ -142,15 +160,13 @@ def summaryChart(query):
         w.write(str('ESTE ES EL CONSOLIDADO DE LOS SIGUIENTES PEDIDOS:'))
         w.write('\n')
         w.write(str(summary_table))
-    writer = pytablewriter.HtmlTableWriter()
-    writer.table_name = "consolidado"
-    writer.header_list =
     return
 
 
-def htmlTable(n, a_product_id_lst, z_lst):
+def htmlTable(n, a_product_id_lst, orders_query_lst, z_lst):
     # *********************************************** HTML
     # esta funcion crea la tabla html
+    # crea la lista de los productos de Floro
 
     # 0. obtiene el nombre de los pedidos para el headerRow
     header = ["PRODUCTO"]
@@ -167,8 +183,8 @@ def htmlTable(n, a_product_id_lst, z_lst):
     for x in a_product_id_lst:
         a_lst.append(str(x['name']))
         # print x['name']
-    print a_lst
-    print ("n es: ", n)
+    print ("a_lst es: ", a_lst)
+    print ("n el numero de pedidos es: ", n)
     print ("tamano de z es: ", len(z_lst))
     print ("tamano de a es: ", len(a_lst))
 
@@ -196,62 +212,276 @@ def htmlTable(n, a_product_id_lst, z_lst):
         summaryCharRows.append(sum(z_lst[inicio:fin]))
         summaryCharRows.append("        ")
         table.append(summaryCharRows)
-        print ("table is:", table)
+        # print ("table is:" , table)                                        #imprime la tabla como una lista de listas
 
     # 3. crea el archivo html
 
     htmlcode = HTML.table(table, header_row=header)  # crea el codigo html de la tabla
-    print htmlcode
+    # print htmlcode                                                        # impresion de prueba codigo html de la tabla
     myText = "Este es el consolidado de la fecha"
     html = """
-        <html> 
-            <head>
-                <title>Tabla consolidado de los pedidos a procesar</title>
-                <style type="text/css">
-                    /**/
-                    h2 {font-family:Helvetica; color: #545454}
-                    /* Changes the font family */
-                    table {font-family:Helvetica;}
+    <html> 
+        <head>
+            <title>Tabla consolidado de los pedidos a procesar</title>
+            <style type="text/css">
+                /**/
+                h2 {font-family:Helvetica; color: #545454}
+                /* Changes the font family */
+                table {font-family:Helvetica;}
 
-                    /* Make cells a bit taller and set border color */
-                    td, th { border: 1px solid #696969; height: 30px; text-align: left;}
+                /* Make cells a bit taller and set border color */
+                td, th { border: 1px solid #696969; height: 30px; text-align: left;}
 
-                    th {font-size: small; /*font size for header row*/
-                    font-weight: bold; /* Make sure they're bold */
-                    color:#696969; /*font color*/
+                th {font-size: small; /*font size for header row*/
+                font-weight: bold; /* Make sure they're bold */
+                color:#696969; /*font color*/
 
-    }
+}
 
-                    /* Changes the background color of every odd row to light gray */
-                    /*table th:nth-child(1) { font-weight: bold}*/
+                /* Changes the background color of every odd row to light gray */
+                /*table th:nth-child(1) { font-weight: bold}*/
 
-                    /* Changes the background color of every odd row to light gray */
-                    /*table tr:nth-of-type(odd) {  background-color: #dbdbdb;}*/
+                /* Changes the background color of every odd row to light gray */
+                /*table tr:nth-of-type(odd) {  background-color: #dbdbdb;}*/
 
-                    /* Changes the background color of every odd column to light gray */
-                    table td:nth-of-type(even) {  background-color: #dbdbdb;}
+                /* Changes the background color of every odd column to light gray */
+                table td:nth-of-type(even) {  background-color: #dbdbdb;}
 
-                    /* Changes the weight of each td cell within each odd row to bold */
-                    table tr:nth-of-type(odd) td {  font-weight: bold;}
+                /* Changes the weight of each td cell within each odd row to bold */
+                table tr:nth-of-type(odd) td {  font-weight: bold;}
 
-                    /* Collapses table borders to make the table appear continuous */
-                    table {  border-collapse: collapse;}
-                    td:not(:first-child) {width:80px} /*all columns except the first*/
+                /* Collapses table borders to make the table appear continuous */
+                table {  border-collapse: collapse;}
+                td:not(:first-child) {width:80px} /*all columns except the first*/
 
 
-                </style>
-            <head>
-            <body>                 
-                <h2>%s</h2>
-                Aqui va texto adicional
-                <strong> %s </strong>
-            <body>
-        <html>
-        """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
-    f = open("file.html", "w")  # crea archivo
-    f.write(html)  # Escribe en el archivo
-    f.close()  # Guarda archivo
-    # ***********************************************
+            </style>
+        <head>
+        <body>                 
+            <h2>%s</h2>
+            Aqui va texto adicional
+            <strong> %s </strong>
+        <body>
+    <html>
+    """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
+    f = open("file.html", "w")  # crea archivo html
+    f.write(html)  # Escribe en el archivo html
+    f.close()  # Guarda archivo html
+    return
+
+
+def htmlFloroTable(n, floro_product_lst, orders_query_lst, z_lst):
+    # *********************************************** HTML
+    # esta funcion crea la tabla html
+    # crea la lista de los productos de Floro
+
+    # 0. obtiene el nombre de los pedidos para el headerRow
+    header = ["PRODUCTO"]
+    # for x in orders_query_lst:
+    #   header.append(str(x['po_number']))
+
+    header.append("TOTAL")
+    header.append("LBS")
+    # print header
+    # 1. obtiene a_lst iterando sobre a_product_id_lst
+    a_lst = []
+    # print a_product_id_lst
+    # print len(a_product_id_lst)
+    for x in floro_product_lst:
+        a_lst.append(str(x['name']))
+        # print x['name']
+    # print ("floro_lst es: ",a_lst)
+    # print ("n el numero de pedidos es: ", n)
+    # print ("tamano de z es: ", len(z_lst))
+    # print ("tamano de a es: ", len(a_lst))
+
+    # 2. crea una lista de listas
+    headerRow = []
+    summaryCharRows = []
+    table = []
+
+    for x in range(len(a_lst)):  # iterando sobre los productos
+        if x == 0:
+            inicio = 0
+            fin = 0 + n
+        else:
+            inicio = x * n
+            fin = inicio + n
+
+        print ("inicio ", inicio)
+        print ("fin es: ", fin)
+        summaryCharRows = []
+        summaryCharRows.append(a_lst[x])
+        # for y in range (inicio, fin):
+        # summaryCharRows.append(z_lst[y])
+        # summaryCharRows.append("        ")
+
+        summaryCharRows.append(sum(z_lst[inicio:fin]))
+        summaryCharRows.append("        ")
+        table.append(summaryCharRows)
+        # print ("table is:" , table)                                        #imprime la tabla como una lista de listas
+
+    # 3. crea el archivo html
+
+    htmlcode = HTML.table(table, header_row=header)  # crea el codigo html de la tabla
+    # print htmlcode                                                        # impresion de prueba codigo html de la tabla
+    myText = "Este es el pedido para Floro"
+    html = """
+    <html> 
+        <head>
+            <title>Tabla consolidado de los pedidos a procesar</title>
+            <style type="text/css">
+                /**/
+                h2 {font-family:Helvetica; color: #545454}
+                /* Changes the font family */
+                table {font-family:Helvetica;}
+
+                /* Make cells a bit taller and set border color */
+                td, th { border: 1px solid #696969; height: 30px; text-align: left;}
+
+                th {font-size: small; /*font size for header row*/
+                font-weight: bold; /* Make sure they're bold */
+                color:#696969; /*font color*/
+
+}
+
+                /* Changes the background color of every odd row to light gray */
+                /*table th:nth-child(1) { font-weight: bold}*/
+
+                /* Changes the background color of every odd row to light gray */
+                /*table tr:nth-of-type(odd) {  background-color: #dbdbdb;}*/
+
+                /* Changes the background color of every odd column to light gray */
+                table td:nth-of-type(even) {  background-color: #dbdbdb;}
+
+                /* Changes the weight of each td cell within each odd row to bold */
+                table tr:nth-of-type(odd) td {  font-weight: bold;}
+
+                /* Collapses table borders to make the table appear continuous */
+                table {  border-collapse: collapse;}
+                td:not(:first-child) {width:80px} /*all columns except the first*/
+
+
+            </style>
+        <head>
+        <body>                 
+            <h2>%s</h2>
+            Aqui va texto adicional
+            <strong> %s </strong>
+        <body>
+    <html>
+    """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
+    f = open("floro.html", "w")  # crea archivo html
+    f.write(html)  # Escribe en el archivo html
+    f.close()  # Guarda archivo html
+    return
+
+
+def htmlEduardoTable(n, eduardo_product_lst, orders_query_lst, z_lst):
+    # *********************************************** HTML
+    # esta funcion crea la tabla html
+    # crea la lista de los productos de Floro
+
+    # 0. obtiene el nombre de los pedidos para el headerRow
+    header = ["PRODUCTO"]
+    # for x in orders_query_lst:
+    #   header.append(str(x['po_number']))
+
+    header.append("TOTAL")
+    header.append("LBS")
+    # print header
+    # 1. obtiene a_lst iterando sobre a_product_id_lst
+    a_lst = []
+    # print a_product_id_lst
+    # print len(a_product_id_lst)
+    for x in eduardo_product_lst:
+        a_lst.append(str(x['name']))
+        # print x['name']
+    # print ("floro_lst es: ",a_lst)
+    # print ("n el numero de pedidos es: ", n)
+    # print ("tamano de z es: ", len(z_lst))
+    # print ("tamano de a es: ", len(a_lst))
+
+    # 2. crea una lista de listas
+    headerRow = []
+    summaryCharRows = []
+    table = []
+
+    for x in range(len(a_lst)):  # iterando sobre los productos
+        if x == 0:
+            inicio = 0
+            fin = 0 + n
+        else:
+            inicio = x * n
+            fin = inicio + n
+
+        print ("inicio ", inicio)
+        print ("fin es: ", fin)
+        summaryCharRows = []
+        summaryCharRows.append(a_lst[x])
+        # for y in range (inicio, fin):
+        # summaryCharRows.append(z_lst[y])
+        # summaryCharRows.append("        ")
+
+        summaryCharRows.append(sum(z_lst[inicio:fin]))
+        summaryCharRows.append("        ")
+        table.append(summaryCharRows)
+        # print ("table is:" , table)                                        #imprime la tabla como una lista de listas
+
+    # 3. crea el archivo html
+
+    htmlcode = HTML.table(table, header_row=header)  # crea el codigo html de la tabla
+    # print htmlcode                                                        # impresion de prueba codigo html de la tabla
+    myText = "Este es el pedido para Eduardo"
+    html = """
+    <html> 
+        <head>
+            <title>Tabla consolidado de los pedidos a procesar</title>
+            <style type="text/css">
+                /**/
+                h2 {font-family:Helvetica; color: #545454}
+                /* Changes the font family */
+                table {font-family:Helvetica;}
+
+                /* Make cells a bit taller and set border color */
+                td, th { border: 1px solid #696969; height: 30px; text-align: left;}
+
+                th {font-size: small; /*font size for header row*/
+                font-weight: bold; /* Make sure they're bold */
+                color:#696969; /*font color*/
+
+}
+
+                /* Changes the background color of every odd row to light gray */
+                /*table th:nth-child(1) { font-weight: bold}*/
+
+                /* Changes the background color of every odd row to light gray */
+                /*table tr:nth-of-type(odd) {  background-color: #dbdbdb;}*/
+
+                /* Changes the background color of every odd column to light gray */
+                table td:nth-of-type(even) {  background-color: #dbdbdb;}
+
+                /* Changes the weight of each td cell within each odd row to bold */
+                table tr:nth-of-type(odd) td {  font-weight: bold;}
+
+                /* Collapses table borders to make the table appear continuous */
+                table {  border-collapse: collapse;}
+                td:not(:first-child) {width:80px} /*all columns except the first*/
+
+
+            </style>
+        <head>
+        <body>                 
+            <h2>%s</h2>
+            Aqui va texto adicional
+            <strong> %s </strong>
+        <body>
+    <html>
+    """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
+    f = open("eduardo.html", "w")  # crea archivo html
+    f.write(html)  # Escribe en el archivo html
+    f.close()  # Guarda archivo html
+    return
 
 
 def loadFormPoDetailQuery():
