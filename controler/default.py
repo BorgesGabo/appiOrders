@@ -9,6 +9,10 @@
 # -------------------------------------------------------------------------
 import datetime
 import HTML
+import openpyxl
+
+from openpyxl import Workbook
+from openpyxl.worksheet.table import Table, TableStyleInfo
 
 from prettytable import PrettyTable
 from prettytable import ALL
@@ -280,7 +284,6 @@ def htmlFloroTable(n, floro_product_lst, orders_query_lst, z_lst):
     header.append("TOTAL")
     header.append("LBS")
     # print header
-    # Crea el objeto pyxl
 
     # 1. obtiene a_lst iterando sobre a_product_id_lst
     a_lst = []
@@ -307,6 +310,36 @@ def htmlFloroTable(n, floro_product_lst, orders_query_lst, z_lst):
         summaryCharRows.append("        ")
         table.append(summaryCharRows)
         print ("table floro is:", table)  # imprime la tabla como una lista de listas
+
+    # Crea la tabla en excel
+    # Crea el libro y toma la hoja activa como hoja de trabajo
+    wb = Workbook()
+    ws = wb.active
+
+    data = [
+        ['Apples', 10000, 5000, 8000, 6000],
+        ['Pears', 2000, 3000, 4000, 5000],
+        ['Bananas', 6000, 6000, 6500, 6000],
+        ['Oranges', 500, 300, 200, 700],
+    ]
+    lastCell = str(len(a_lst) + 1)  # Find the last row with data
+    lastCell = "C" + lastCell  # Add the column by concatenating
+    lastCell = "A1:" + lastCell  # Produce the range of cells which contains the data
+    print lastCell
+    # add column headings. NB. these must be strings
+    # ws.append(["Fruit", "2011", "2012", "2013", "2014"])
+    ws.append(header)
+    for row in table:
+        ws.append(row)
+
+    tab = Table(displayName="Table1", ref=lastCell)
+
+    # Add a default style with striped rows and banded columns
+    style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False,
+                           showLastColumn=False, showRowStripes=True, showColumnStripes=True)
+    tab.tableStyleInfo = style
+    ws.add_table(tab)
+    wb.save("table.xlsx")
 
     # 3. crea el archivo html
 

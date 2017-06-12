@@ -9,6 +9,10 @@
 # -------------------------------------------------------------------------
 import datetime
 import HTML
+import openpyxl
+
+from openpyxl import Workbook
+from openpyxl.worksheet.table import Table, TableStyleInfo
 
 from prettytable import PrettyTable
 from prettytable import ALL
@@ -66,7 +70,20 @@ def summaryChart(query):
     query &= db.po.po_number<2432'''  # quitar comillas si quiere probar desde la linea de comandos
 
     orders_query_lst = db(query).select(db.po.id, db.po.po_number,
-                                        groupby='po.po_number').as_list()  # obtiene id de los pedidos del query
+                                        groupby='po.po_number').as_list()  # obtiene id de los pedidos del query y lo convierte en una lista
+
+    # obtiene los productos que son de floro
+    query_floro = query  # modifica la query para sacar los productos de proveedor floriberto
+    query_floro &= db.product.supplier_id == 2
+    floro_product_lst = db(query_floro).select(db.product.id, db.product.name,
+                                               groupby='product.name').as_list()
+
+    # obtiene los productos que son de eduardo
+    query_eduardo = query  # modifica la query para sacar los productos de proveedor floriberto
+    query_eduardo &= db.product.supplier_id == 1
+    eduardo_product_lst = db(query_eduardo).select(db.product.id, db.product.name,
+                                                   groupby='product.name').as_list()
+
     n = len(orders_query_lst)  # obtiene el numero de pedidos de query
     d_lst = [str(x['po_number']) + '|Recibido' for x in
              orders_query_lst]  # obtiene las referencias de los pedidos del query
@@ -114,10 +131,46 @@ def summaryChart(query):
     # print (str('j is:'), j)                                     #impresion de prueba
     # print (str('bj_lst is:'), bj_lst)                           #impresion de prueba
     # print (str('b_lst is:'), b_lst)                             #impresion de prueba
+    # *************************************LLAMA LA FUNCION QUE IMPRIME HTML****************************
+    htmlTable(n, a_product_id_lst, orders_query_lst, z_lst)
+    # *************************************LLAMA LA FUNCION QUE IMPRIME HTML FLORO****************************
+    htmlFloroTable(n, floro_product_lst, orders_query_lst, z_lst)
+    # *************************************LLAMA LA FUNCION QUE IMPRIME HTML FLORO****************************
+    htmlEduardoTable(n, eduardo_product_lst, orders_query_lst, z_lst)
+
+    # ************************************* IMPRIME TABLA RESUMEN **************************************
+    a_product_name_lst = db(query).select(db.product.name,
+                                          groupby='product.name').as_list()  # obtiene lista de nombres productos no repetidos en rango
+    field_names_lst = d_lst  # crea una lista con todos los numeros del pedido dentro del rango
+    field_names_lst.insert(0, "Producto")  # agrega al inicio de la lista el titulo producto
+    field_names_lst.insert(len(field_names_lst), "Total")  # Adiciona al final de la lista el titulo total
+    summary_table = PrettyTable(field_names_lst)  # crea la tabla resumen con los titulos de cada columna
+    total_lst = []
+    for y in range(0, len(a_product_id_lst)):
+        begining_slice = y * n  # definicion del inicio del intervalo de corte de la lista
+        end_slice = begining_slice + n  # definicion del fin del intervalo de corte de la lista
+        row_summary_lst = z_lst[
+                          begining_slice:end_slice]  # Toma los totales entre el incio y fin del intervalo sin tocar el fin
+        # si desea solo las cantidades del pedido sin multiplicar por los pesos usar b_lst por Z_lst
+        total = sum(row_summary_lst)  # suma las cantidades de todos los pedidos del rango
+        row_summary_lst.insert(0, a_product_name_lst[y]['name'])  # agrega el nombre al inicio de la lista
+        row_summary_lst.insert(len(row_summary_lst), total)  # agrega el total al final de la lista
+        summary_table.add_row(row_summary_lst)  # agrega filas a la tabla
+        summary_table.align = 'l'
+        # summary_table.align['Producto']='l'                 # alinea la a la izquierda la primera columna
+        summary_table.align['Total'] = 'r'  # alinea a la derecha la ultima columna
+    print summary_table  # imprime la tabla resumen
+    with open('consolidado.txt', 'w') as w:  # escribe la tabla en un archivo txt
+        w.write(str('ESTE ES EL CONSOLIDADO DE LOS SIGUIENTES PEDIDOS:'))
+        w.write('\n')
+        w.write(str(summary_table))
+    return
 
 
+def htmlTable(n, a_product_id_lst, orders_query_lst, z_lst):
     # *********************************************** HTML
     # esta funcion crea la tabla html
+    # crea la lista de los productos de Floro
 
     # 0. obtiene el nombre de los pedidos para el headerRow
     header = ["PRODUCTO"]
@@ -134,8 +187,8 @@ def summaryChart(query):
     for x in a_product_id_lst:
         a_lst.append(str(x['name']))
         # print x['name']
-    print a_lst
-    print ("n es: ", n)
+    print ("a_lst es: ", a_lst)
+    print ("n el numero de pedidos es: ", n)
     print ("tamano de z es: ", len(z_lst))
     print ("tamano de a es: ", len(a_lst))
 
@@ -163,12 +216,12 @@ def summaryChart(query):
         summaryCharRows.append(sum(z_lst[inicio:fin]))
         summaryCharRows.append("        ")
         table.append(summaryCharRows)
-        print ("table is:", table)
+        # print ("table is:" , table)                                        #imprime la tabla como una lista de listas
 
     # 3. crea el archivo html
 
     htmlcode = HTML.table(table, header_row=header)  # crea el codigo html de la tabla
-    print htmlcode
+    # print htmlcode                                                        # impresion de prueba codigo html de la tabla
     myText = "Este es el consolidado de la fecha"
     html = """
     <html> 
@@ -215,41 +268,238 @@ def summaryChart(query):
         <body>
     <html>
     """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
-    f = open("file.html", "w")  # crea archivo
-    f.write(html)  # Escribe en el archivo
-    f.close()  # Guarda archivo
-
-    # ***********************************************
-
+    f = open("file.html", "w")  # crea archivo html
+    f.write(html)  # Escribe en el archivo html
+    f.close()  # Guarda archivo html
+    return
 
 
+def htmlFloroTable(n, floro_product_lst, orders_query_lst, z_lst):
+    # *********************************************** HTML
+    # esta funcion crea la tabla html
+    # crea la lista de los productos de Floro
 
-    # ************************************* IMPRIME TABLA RESUMEN **************************************
-    a_product_name_lst = db(query).select(db.product.name,
-                                          groupby='product.name').as_list()  # obtiene lista de nombres productos no repetidos en rango
-    field_names_lst = d_lst  # crea una lista con todos los numeros del pedido dentro del rango
-    field_names_lst.insert(0, "Producto")  # agrega al inicio de la lista el titulo producto
-    field_names_lst.insert(len(field_names_lst), "Total")  # Adiciona al final de la lista el titulo total
-    summary_table = PrettyTable(field_names_lst)  # crea la tabla resumen con los titulos de cada columna
-    total_lst = []
-    for y in range(0, len(a_product_id_lst)):
-        begining_slice = y * n  # definicion del inicio del intervalo de corte de la lista
-        end_slice = begining_slice + n  # definicion del fin del intervalo de corte de la lista
-        row_summary_lst = z_lst[
-                          begining_slice:end_slice]  # Toma los totales entre el incio y fin del intervalo sin tocar el fin
-        # si desea solo las cantidades del pedido sin multiplicar por los pesos usar b_lst por Z_lst
-        total = sum(row_summary_lst)  # suma las cantidades de todos los pedidos del rango
-        row_summary_lst.insert(0, a_product_name_lst[y]['name'])  # agrega el nombre al inicio de la lista
-        row_summary_lst.insert(len(row_summary_lst), total)  # agrega el total al final de la lista
-        summary_table.add_row(row_summary_lst)  # agrega filas a la tabla
-        summary_table.align = 'l'
-        # summary_table.align['Producto']='l'                 # alinea la a la izquierda la primera columna
-        summary_table.align['Total'] = 'r'  # alinea a la derecha la ultima columna
-    print summary_table  # imprime la tabla resumen
-    with open('consolidado.txt', 'w') as w:  # escribe la tabla en un archivo txt
-        w.write(str('ESTE ES EL CONSOLIDADO DE LOS SIGUIENTES PEDIDOS:'))
-        w.write('\n')
-        w.write(str(summary_table))
+    # 0. obtiene el nombre de los pedidos para el headerRow
+    header = ["PRODUCTO"]
+    header.append("TOTAL")
+    header.append("LBS")
+    # print header
+
+    # 1. obtiene a_lst iterando sobre a_product_id_lst
+    a_lst = []
+    for x in floro_product_lst:
+        a_lst.append(str(x['name']))
+
+    # 2. crea una lista de listas
+    headerRow = []
+    summaryCharRows = []
+    table = []
+
+    for x in range(len(a_lst)):  # iterando sobre los productos
+        if x == 0:
+            inicio = 0
+            fin = 0 + n
+        else:
+            inicio = x * n
+            fin = inicio + n
+        print ("inicio ", inicio)
+        print ("fin es: ", fin)
+        summaryCharRows = []
+        summaryCharRows.append(a_lst[x])
+        summaryCharRows.append(sum(z_lst[inicio:fin]))
+        summaryCharRows.append("        ")
+        table.append(summaryCharRows)
+        print ("table floro is:", table)  # imprime la tabla como una lista de listas
+
+    # Crea la tabla en excel
+    # Crea el libro y toma la hoja activa como hoja de trabajo
+    wb = Workbook()
+    ws = wb.active
+
+    data = [
+        ['Apples', 10000, 5000, 8000, 6000],
+        ['Pears', 2000, 3000, 4000, 5000],
+        ['Bananas', 6000, 6000, 6500, 6000],
+        ['Oranges', 500, 300, 200, 700],
+    ]
+    lastCell = str(len(a_lst) + 1)  # Find the last row with data
+    lastCell = "C" + lastCell  # Add the column by concatenating
+    lastCell = "A1:" + lastCell  # Produce the range of cells which contains the data
+    print lastCell
+    # add column headings. NB. these must be strings
+    # ws.append(["Fruit", "2011", "2012", "2013", "2014"])
+    ws.append(header)
+    for row in table:
+        ws.append(row)
+
+    tab = Table(displayName="Table1", ref=lastCell)
+
+    # Add a default style with striped rows and banded columns
+    style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False,
+                           showLastColumn=False, showRowStripes=True, showColumnStripes=True)
+    tab.tableStyleInfo = style
+    ws.add_table(tab)
+    wb.save("table.xlsx")
+
+    # 3. crea el archivo html
+
+    htmlcode = HTML.table(table, header_row=header)  # crea el codigo html de la tabla
+    # print htmlcode                                                        # impresion de prueba codigo html de la tabla
+    myText = "Este es el pedido para Floro"
+    html = """
+    <html> 
+        <head>
+            <title>Pedido para Floro</title>
+            <style type="text/css">
+                /**/
+                h2 {font-family:Helvetica; color: #545454}
+                /* Changes the font family */
+                table {font-family:Helvetica;}
+
+                /* Make cells a bit taller and set border color */
+                td, th { border: 1px solid #696969; height: 30px; text-align: left;}
+
+                th {font-size: small; /*font size for header row*/
+                font-weight: bold; /* Make sure they're bold */
+                color:#696969; /*font color*/
+
+}
+
+                /* Changes the background color of every odd row to light gray */
+                /*table th:nth-child(1) { font-weight: bold}*/
+
+                /* Changes the background color of every odd row to light gray */
+                /*table tr:nth-of-type(odd) {  background-color: #dbdbdb;}*/
+
+                /* Changes the background color of every odd column to light gray */
+                table td:nth-of-type(even) {  background-color: #dbdbdb;}
+
+                /* Changes the weight of each td cell within each odd row to bold */
+                table tr:nth-of-type(odd) td {  font-weight: bold;}
+
+                /* Collapses table borders to make the table appear continuous */
+                table {  border-collapse: collapse;}
+                td:not(:first-child) {width:80px} /*all columns except the first*/
+
+            </style>
+        <head>
+        <body>
+            <h2>%s</h2>
+            Aqui va texto adicional
+            <strong> %s </strong>
+        <body>
+    <html>
+    """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
+    f = open("floro.html", "w")  # crea archivo html
+    f.write(html)  # Escribe en el archivo html
+    f.close()  # Guarda archivo html
+    return
+
+
+def htmlEduardoTable(n, eduardo_product_lst, orders_query_lst, z_lst):
+    # *********************************************** HTML
+    # esta funcion crea la tabla html
+    # crea la lista de los productos de Floro
+
+    # 0. obtiene el nombre de los pedidos para el headerRow
+    header = ["PRODUCTO"]
+    # for x in orders_query_lst:
+    #   header.append(str(x['po_number']))
+
+    header.append("TOTAL")
+    header.append("LBS")
+    # print header
+    # 1. obtiene a_lst iterando sobre a_product_id_lst
+    a_lst = []
+    # print a_product_id_lst
+    # print len(a_product_id_lst)
+    for x in eduardo_product_lst:
+        a_lst.append(str(x['name']))
+        # print x['name']
+    # print ("floro_lst es: ",a_lst)
+    # print ("n el numero de pedidos es: ", n)
+    # print ("tamano de z es: ", len(z_lst))
+    # print ("tamano de a es: ", len(a_lst))
+
+    # 2. crea una lista de listas
+    headerRow = []
+    summaryCharRows = []
+    table = []
+
+    for x in range(len(a_lst)):  # iterando sobre los productos
+        if x == 0:
+            inicio = 0
+            fin = 0 + n
+        else:
+            inicio = x * n
+            fin = inicio + n
+
+        print ("inicio ", inicio)
+        print ("fin es: ", fin)
+        summaryCharRows = []
+        summaryCharRows.append(a_lst[x])
+        # for y in range (inicio, fin):
+        # summaryCharRows.append(z_lst[y])
+        # summaryCharRows.append("        ")
+
+        summaryCharRows.append(sum(z_lst[inicio:fin]))
+        summaryCharRows.append("        ")
+        table.append(summaryCharRows)
+        # print ("table is:" , table)                                        #imprime la tabla como una lista de listas
+
+    # 3. crea el archivo html
+
+    htmlcode = HTML.table(table, header_row=header)  # crea el codigo html de la tabla
+    # print htmlcode                                                        # impresion de prueba codigo html de la tabla
+    myText = "Este es el pedido para Eduardo"
+    html = """
+    <html> 
+        <head>
+            <title>Pedido para Eduardo</title>
+            <style type="text/css">
+                /**/
+                h2 {font-family:Helvetica; color: #545454}
+                /* Changes the font family */
+                table {font-family:Helvetica;}
+
+                /* Make cells a bit taller and set border color */
+                td, th { border: 1px solid #696969; height: 30px; text-align: left;}
+
+                th {font-size: small; /*font size for header row*/
+                font-weight: bold; /* Make sure they're bold */
+                color:#696969; /*font color*/
+
+}
+
+                /* Changes the background color of every odd row to light gray */
+                /*table th:nth-child(1) { font-weight: bold}*/
+
+                /* Changes the background color of every odd row to light gray */
+                /*table tr:nth-of-type(odd) {  background-color: #dbdbdb;}*/
+
+                /* Changes the background color of every odd column to light gray */
+                table td:nth-of-type(even) {  background-color: #dbdbdb;}
+
+                /* Changes the weight of each td cell within each odd row to bold */
+                table tr:nth-of-type(odd) td {  font-weight: bold;}
+
+                /* Collapses table borders to make the table appear continuous */
+                table {  border-collapse: collapse;}
+                td:not(:first-child) {width:80px} /*all columns except the first*/
+
+
+            </style>
+        <head>
+        <body>                 
+            <h2>%s</h2>
+            Aqui va texto adicional
+            <strong> %s </strong>
+        <body>
+    <html>
+    """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
+    f = open("eduardo.html", "w")  # crea archivo html
+    f.write(html)  # Escribe en el archivo html
+    f.close()  # Guarda archivo html
     return
 
 
