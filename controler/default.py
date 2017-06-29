@@ -53,8 +53,73 @@ def processPo():
     results = db(query).select(db.po.po_number, db.po.date, db.po_detail.product_id, db.po_detail.quantity,
                                db.product.pres, db.po.customer_id, orderby='po_number')
     msg = T("%s registros encontrados" % count)
-    summaryChart(query)
+    queryGen(query)
     return dict(form=form, msg=msg, results=results)
+
+
+def queryGen(query):
+    # **** THIS FUNCTION GENERATES GETS THE PRODUCTS PER PURCHASE ORDER***
+    # INPUT  query:str
+    # OUTPUT selectedOrders_lst , numberOfCharts: int, numberOfPos:int
+
+
+    pos_lst = []
+    numberOfCharts = 0
+
+    pos_lst = db(query).select(db.po.po_number,
+                               groupby='po_number').as_list()  # GET the number of pos in the range of dates
+    for i in range(len(selectedOrders_lst)):
+
+
+    # this function gets the main query (products, pos, pos_detail) between two dates
+    # and generates the necessary queries to produce the summaryChartGen per supplier
+    for i in range(0, 4):
+        if i == 0:
+            queryBase = query
+        else:
+            queryBase = query
+            queryBase &= db.product.supplier_id == i
+        selectedOrders_lst = db(queryBase).select(db.po.po_number, db.po.date, db.po_detail.product_id,
+                                                  db.po_detail.quantity, db.product.name,
+                                                  db.product.pres, db.po.customer_id, orderby='po_number').as_list()
+        if len(selectedOrders_lst) != 0:
+            numberOfCharts += 1
+            supplierNumber = i
+            summaryChartGen(selectedOrders_lst, numberOfCharts,
+                            supplierNumber, pos_lst)  # CALL the function to generate summary list
+            # print ("el numero de cuadros: ", numberOfCharts)   #enable to check
+            # print ("i es: ", i)
+            # print selectedOrders_lst
+            # print ("longitud de la query es: ", len(selectedOrders_lst))
+    return
+
+
+def summaryChartGen(selectedOrders_lst, numberOfCharts, supplierNumber, pos_lst):
+    # **** THIS FUNCTION GENERATES the base lists to render html and xls files ***
+    # INPUT  selectedOrders_lst, numberOfCharts:int, supplierNumber:int, numberOfPos:int
+    # OUTPUT summaryChart_lst, supplierNumber:int
+
+
+    subtotal_lst = []
+    summaryChart_lst = []
+
+    for k in range(len(pos_lst)): # loop over purchase orders list
+        po_number = pos_lst[k]['po_number']
+
+
+    for j in range(len(selectedOrders_lst)):  # loop over e.a. product
+        del subtotal_lst[:]  # empty the list
+        for i in range(numberOfPos):  # loop over e.a. purchase order po
+            #subtotalItem = selectedOrders_lst[j]['product']['pres'] * selectedOrders_lst[j]['po_detail']['quantity']
+            # GET pres and quantity per purchase order and multiply them
+            subtotalItem = selectedOrders_lst[i]['product']['pres'] * selectedOrders_lst[i]['po_detail']['quantity']
+
+            # APPEND it to subtotal_lst
+            subtotal_lst.append(subtotalItem)
+            print ("the list is: ", subtotal_lst)
+        subtotal = sum(subtotal_lst)
+        print ("the total is: ", subtotal)
+    return
 
 
 def summaryChart(query):
