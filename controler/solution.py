@@ -19,7 +19,7 @@ def ppal (queryBase):
     print pdcts['b']
     print "\n"
     print "products by po"
-    print "\n"
+
     print pdcts['a']
     return
 
