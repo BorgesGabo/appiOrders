@@ -5,7 +5,7 @@ def ppal (queryBase):
 
     # 2. CALL  getIds & pass through charGenerator
     ids = getIds(queryBase)
-    names_dic = chartGenerator(ids)
+    ids_dic = chartGenerator(ids)
 
     # 3. CALL productsPerPo
     pdcts = productsPerPo(queryBase)
@@ -27,7 +27,7 @@ def ppal (queryBase):
     print pdcts['a']
     print "\n"
     print "esta es a lista preliminar de subtotales"
-    print names_dic
+    print ids_dic
     return
 
 def chartGenerator(pdctNames_lst):
