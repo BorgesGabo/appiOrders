@@ -2,11 +2,16 @@ def ppal (queryBase):
     # 1. CALL getNames
     names = getNames(queryBase)
 
-    # 2. CALL  getIds
+
+    # 2. CALL  getIds & pass through charGenerator
     ids = getIds(queryBase)
+    names_dic = chartGenerator(ids)
 
     # 3. CALL productsPerPo
     pdcts = productsPerPo(queryBase)
+
+    # 4. CALL chartGenertator
+
 
     print "estos son los products.name sin repetir"
     print names
@@ -19,9 +24,19 @@ def ppal (queryBase):
     print pdcts['b']
     print "\n"
     print "products by po"
-
     print pdcts['a']
+    print "\n"
+    print "esta es a lista preliminar de subtotales"
+    print names_dic
     return
+
+def chartGenerator(pdctNames_lst):
+    listNames_dic = {}
+    for pdct in pdctNames_lst:
+        name = "poducto_" + str(pdct)
+        listNames_dic[name] = []
+    #print listNames_dic
+    return listNames_dic
 
 def getNames(queryBase):
     # THIS function gets all the names with no repetition
