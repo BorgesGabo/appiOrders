@@ -44,22 +44,19 @@ def chartGenerator(pdctId_lst, productsPerPo_lst):
         name = "producto_" + str(pdct)
         totals_dic[name] = []
 
-
     for j in range(len(productsPerPo_lst)):  # loops over ea purchase order
         for k in range(len(productsPerPo_lst[j])):  # loops over ea product
             print productsPerPo_lst[j][k]['po_detail'].values()
             for ids in pdctId_lst:
-                exist = ids in productsPerPo_lst[j][k]['po_detail'].values() # check if the product.id of the list is in the product "k" of purchase order "j"
-                pres =  productsPerPo_lst[j][k]['product']['pres']
-                qty =  productsPerPo_lst[j][k]['po_detail']['quantity']
+                exist = ids in productsPerPo_lst[j][k][
+                    'po_detail'].values()  # check if the product.id of the list is in the product "k" of purchase order "j"
+                pres = productsPerPo_lst[j][k]['product']['pres']
+                qty = productsPerPo_lst[j][k]['po_detail']['quantity']
                 print ("for j: ", j, " k: ", k, "id is:", ids, "exist is: ")
                 print exist
-                if exist == False:
-
-                    totals_dic["producto_" + str(ids)].append(0)
-                else:
-                    totals_dic["producto_" + str(ids)].append(int(pres)*int(qty))
-
+                if exist != False:
+                    totals_dic["producto_" + str(ids)].append(int(pres) * int(qty))
+'''
     for ids in pdctId_lst:
         for j in range(len(productsPerPo_lst)):
             #print productsPerPo_lst[j][k]['po_detail'].values()
@@ -74,7 +71,7 @@ def chartGenerator(pdctId_lst, productsPerPo_lst):
 
                     totals_dic["producto_" + str(ids)].append(0)
                 else:
-                    totals_dic["producto_" + str(ids)].append(int(pres) * int(qty))
+                    totals_dic["producto_" + str(ids)].append(int(pres) * int(qty))'''
 
     return totals_dic
 
