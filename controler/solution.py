@@ -5,13 +5,13 @@ def ppal (queryBase):
 
     # 2. CALL  getIds & pass through charGenerator
     ids = getIds(queryBase)
-    ids_dic = chartGenerator(ids)
+    #ids_dic = chartGenerator(ids)
 
     # 3. CALL productsPerPo
     pdcts = productsPerPo(queryBase)
 
     # 4. CALL chartGenertator
-
+    chart = chartGenerator(ids, pdcts['a'])
 
     print "estos son los products.name sin repetir"
     print names
@@ -26,17 +26,57 @@ def ppal (queryBase):
     print "products by po"
     print pdcts['a']
     print "\n"
-    print "esta es a lista preliminar de subtotales"
-    print ids_dic
+    #print "esta es a lista preliminar de subtotales"
+    #print ids_dic
+
+    print "\n"
+    print "este es el cuadro"
+    print chart
     return
 
-def chartGenerator(pdctNames_lst):
-    listNames_dic = {}
-    for pdct in pdctNames_lst:
-        name = "poducto_" + str(pdct)
-        listNames_dic[name] = []
-    #print listNames_dic
-    return listNames_dic
+def chartGenerator(pdctId_lst, productsPerPo_lst):
+
+    # INPUT pdctNames_lst: all the product names grouped by name w.o. repetition
+
+    # GENERATES  a dic with lists named as each product id
+    totals_dic = {}
+    for pdct in pdctId_lst:
+        name = "producto_" + str(pdct)
+        totals_dic[name] = []
+
+
+    for j in range(len(productsPerPo_lst)):  # loops over ea purchase order
+        for k in range(len(productsPerPo_lst[j])):  # loops over ea product
+            print productsPerPo_lst[j][k]['po_detail'].values()
+            for ids in pdctId_lst:
+                exist = ids in productsPerPo_lst[j][k]['po_detail'].values() # check if the product.id of the list is in the product "k" of purchase order "j"
+                pres =  productsPerPo_lst[j][k]['product']['pres']
+                qty =  productsPerPo_lst[j][k]['po_detail']['quantity']
+                print ("for j: ", j, " k: ", k, "id is:", ids, "exist is: ")
+                print exist
+                if exist == False:
+
+                    totals_dic["producto_" + str(ids)].append(0)
+                else:
+                    totals_dic["producto_" + str(ids)].append(int(pres)*int(qty))
+
+    for ids in pdctId_lst:
+        for j in range(len(productsPerPo_lst)):
+            #print productsPerPo_lst[j][k]['po_detail'].values()
+            for k in range(len(productsPerPo_lst[j])):
+                exist = ids in productsPerPo_lst[j][k][
+                    'po_detail'].values()  # check if the product.id of the list is in the product "k" of purchase order "j"
+                pres = productsPerPo_lst[j][k]['product']['pres']
+                qty = productsPerPo_lst[j][k]['po_detail']['quantity']
+                print ("for j: ", j, " k: ", k, "id is:", ids, "exist is: ")
+                print exist
+                if exist == False:
+
+                    totals_dic["producto_" + str(ids)].append(0)
+                else:
+                    totals_dic["producto_" + str(ids)].append(int(pres) * int(qty))
+
+    return totals_dic
 
 def getNames(queryBase):
     # THIS function gets all the names with no repetition
