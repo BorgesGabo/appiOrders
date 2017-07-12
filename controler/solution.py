@@ -34,7 +34,7 @@ def ppal (queryBase):
     print chart
     return
 
-def chartGenerator(pdctId_lst, productsPerPo_lst):
+def chartGenerator(pdctId_lst, productsPerPo_lst, pdctName_lst):
 
     # INPUT pdctNames_lst: all the product names grouped by name w.o. repetition
 
@@ -43,7 +43,7 @@ def chartGenerator(pdctId_lst, productsPerPo_lst):
     for pdct in pdctId_lst:
         name = "producto_" + str(pdct)
         totals_dic[name] = []
-
+'''
     for j in range(len(productsPerPo_lst)):  # loops over ea purchase order
         for k in range(len(productsPerPo_lst[j])):  # loops over ea product
             print productsPerPo_lst[j][k]['po_detail'].values()
@@ -56,22 +56,35 @@ def chartGenerator(pdctId_lst, productsPerPo_lst):
                 print exist
                 if exist != False:
                     totals_dic["producto_" + str(ids)].append(int(pres) * int(qty))
-'''
-    for ids in pdctId_lst:
-        for j in range(len(productsPerPo_lst)):
+                if ids == pdctId_lst[-1]:
+                    print "este es el ultimo"
+                totals_dic["producto_" + str(ids)].append(sum(totals_dic))'''
+
+    for ids in pdctId_lst:   # loops over ea consolidated produc Id
+        for j in range(len(productsPerPo_lst)): # loops over ea PO
             #print productsPerPo_lst[j][k]['po_detail'].values()
-            for k in range(len(productsPerPo_lst[j])):
+            for k in range(len(productsPerPo_lst[j])):  # loops over ea product
                 exist = ids in productsPerPo_lst[j][k][
                     'po_detail'].values()  # check if the product.id of the list is in the product "k" of purchase order "j"
                 pres = productsPerPo_lst[j][k]['product']['pres']
                 qty = productsPerPo_lst[j][k]['po_detail']['quantity']
                 print ("for j: ", j, " k: ", k, "id is:", ids, "exist is: ")
                 print exist
-                if exist == False:
+                if exist != False:
+                    totals_dic["producto_" + str(ids)].append(int(pres) * int(qty))  # Incluye en la lista subtotales
 
-                    totals_dic["producto_" + str(ids)].append(0)
-                else:
-                    totals_dic["producto_" + str(ids)].append(int(pres) * int(qty))'''
+    # ADDS product's names and adds up the sublist elements
+    for i in range(len(pdctNames_lst)):
+        pdctName = str(pdctNames_lst[i])
+        totals_lst = totals_dic["producto_" + str(pdctId_lst[i])]
+        print "pdctName[i]: "
+        print pdctNames_lst[i]
+        print "totals_dic"
+        print totals_dic["producto_" + str(pdctId_lst[i])]
+        totals_lst.insert(0,pdctNames_lst[i])
+        totals_lst.insert(len(totals_lst), sum(totals_lst[1:]))
+        print totals_dic
+
 
     return totals_dic
 
