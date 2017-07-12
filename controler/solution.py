@@ -77,14 +77,14 @@ def chartGenerator(pdctId_lst, productsPerPo_lst, pdctName_lst):
     for i in range(len(pdctNames_lst)):
         pdctName = str(pdctNames_lst[i])
         totals_lst = totals_dic["producto_" + str(pdctId_lst[i])]
-        print "pdctName[i]: "
-        print pdctNames_lst[i]
-        print "totals_dic"
-        print totals_dic["producto_" + str(pdctId_lst[i])]
+        #print "pdctName[i]: "
+        #print pdctNames_lst[i]
+        #print "totals_dic"
+        #print totals_dic["producto_" + str(pdctId_lst[i])]
         totals_lst.insert(0,pdctNames_lst[i])
         totals_lst.insert(len(totals_lst), sum(totals_lst[1:]))
-        print totals_dic
-
+        totals = totals_dic.values() # Convierte el diccionario en lista de sublistas
+    return totals
 
     return totals_dic
 
