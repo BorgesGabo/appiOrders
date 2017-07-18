@@ -45,30 +45,49 @@ def ppal(queryBase):
     print ids4
     return
 
+
 def filterPerSupplier(queryBase, proveedorI, chart):
-    # esta funcion filtra el diccionario de charGenerator() por proveedor
-    # INPUT queryBase
+    # esta funcion filtra el consolidado de productos (chart) de la funcion charGenerator() y produce un consolidado de productos para el proveedorI
+    # INPUTS:
+    #       queryBase: str -> es query tipo DAL web2py con el listado de los productos entre las fechas ingresadas
+    #                      ejemplo: ((((po.id = po_detail.po_id) AND (po_detail.product_id = product.id)) AND (po.date >= '2017-05-23 17:43:11')) AND (po.date <= '2017-05-26 15:16:00'))
+    #       proveedorI: int -> es un entero que representa el ID de la tabla: db.supplier.id (0-2)
+    #       chart: dic -> es el consolidado de productos de los productos
+    #                  ejemplo: {'producto_567': ['Papa criolla organica', 1500, 1500], 'producto_481': ['Acelga organica', 1000, 500, 1500], 'producto_493': ['Banano Bocadillo organico', 6, 6],....}
+    # OUTPUT
+    #       s:list -> es el consolidado por proveedor como una lista
+    #               ejemplo: []
+    #                        [['Acelga organica', 1000, 500, 1500], ['Huevos de granja organica', 12, 12]]
+    #                        [['Papa criolla organica', 1500, 1500], ['Banano Bocadillo organico', 6, 6], ...]
+
     print "+++++++++++++++++  STARTING filterPerSupplier  ++++++++++++++++++++++++++"
-    # saca listado de Ids de los productos por proveedor
-    print ("esta es la queryBase", queryBase)
+    # SACA listado de Ids de los productos por proveedor
+    #print ("esta es la queryBase", queryBase)
+    # EJECUTA la query y obtiene los productos para el proveedorI
     queryBaseSupplier = queryBase
     queryBaseSupplier &= db.product.supplier_id == proveedorI
-    pdctId_lst_dic = db(queryBaseSupplier). select(db.po_detail.product_id, groupby='product_id'). as_list()
+    pdctId_lst_dic = db(queryBaseSupplier).select(db.po_detail.product_id, groupby='product_id').as_list()
     pdct_Id_lst = []
 
-    # GET all the ids of e.a. product
+    # OBTIENE el id de cada producto y los almacena en una lista simple
     for i in range(len(pdctId_lst_dic)):
         pdct_Id_lst.append(pdctId_lst_dic[i]['product_id'])
 
-    # REPITE en cada uno de los productos filtrados por proveedor
-    # si el producto no esta en chart entonce lo borra
+    # CREA una copia del diccionario que contiene los resultados
     r = dict(chart)
-    for pdct_Id in pdct_Id_lst:
-        if "product_" + str(pdct_Id) in chart == False:
-            del r["product_" +str(pdct_Id)]
+    #print ("esta es la lista de los ids filtrados por proveedor", pdct_Id_lst)
+    #print ("este es el diccionario: ", chart)
 
-    return r
-
+    # REPETIR para cada producto de chart
+    for key in chart:
+        esta = int(key[9:]) in pdct_Id_lst  # VERIFICA si cada producto de chart esta en la lista
+                                            # de los productos filtrados por proveedor
+        #print ("key is: ", key)
+        #print ("esta ? ", esta)
+        if esta == False:  # SI no existe para ese proveedor...
+            del r[key]     # BORRA el producto (key) del chart
+    s = r.values()         # CONVIERTE a formato lista de sublistas
+    return s
 
 def chartGenerator(pdctId_lst, productsPerPo_lst, pdctNames_lst):
 
@@ -105,7 +124,7 @@ def chartGenerator(pdctId_lst, productsPerPo_lst, pdctNames_lst):
         #print totals_dic["product_" + str(pdctId_lst[i])]
         pdctKey.insert(0,pdctNames_lst[i]) # A cada lista agrega el nombre
         pdctKey.insert(len(pdctKey), sum(pdctKey[1:])) # En cada lista agrega su total
-        #totals = totals_dic.values()
+
     return totals_dic
 
 def getNames(queryBase):
