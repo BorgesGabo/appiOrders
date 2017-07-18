@@ -1,17 +1,21 @@
-def ppal (queryBase):
+def ppal(queryBase):
     # 1. CALL getNames
     names = getNames(queryBase)
 
-
     # 2. CALL  getIds & pass through charGenerator
     ids = getIds(queryBase)
-    #ids_dic = chartGenerator(ids)
+    # ids_dic = chartGenerator(ids)
 
     # 3. CALL productsPerPo
     pdcts = productsPerPo(queryBase)
 
     # 4. CALL chartGenertator
-    chart = chartGenerator(ids, pdcts['a'])
+    chart = chartGenerator(ids, pdcts['a'], names)
+
+    # 5. CALL  filterPerSupplier
+    ids2 = filterPerSupplier(queryBase, 0, chart)
+    ids3 = filterPerSupplier(queryBase, 1, chart)
+    ids4 = filterPerSupplier(queryBase, 2, chart)
 
     print "estos son los products.name sin repetir"
     print names
@@ -26,39 +30,55 @@ def ppal (queryBase):
     print "products by po"
     print pdcts['a']
     print "\n"
-    #print "esta es a lista preliminar de subtotales"
-    #print ids_dic
+    # print "esta es a lista preliminar de subtotales"
+    # print ids_dic
 
     print "\n"
     print "este es el cuadro"
     print chart
+
+    print "\n"
+    print "estos son los productos filtrados por proveedor: "
+    print "\n"
+    print ids2
+    print ids3
+    print ids4
     return
 
-def chartGenerator(pdctId_lst, productsPerPo_lst, pdctName_lst):
+def filterPerSupplier(queryBase, proveedorI, chart):
+    # esta funcion filtra el diccionario de charGenerator() por proveedor
+    # INPUT queryBase
+    print "+++++++++++++++++  STARTING filterPerSupplier  ++++++++++++++++++++++++++"
+    # saca listado de Ids de los productos por proveedor
+    print ("esta es la queryBase", queryBase)
+    queryBaseSupplier = queryBase
+    queryBaseSupplier &= db.product.supplier_id == proveedorI
+    pdctId_lst_dic = db(queryBaseSupplier). select(db.po_detail.product_id, groupby='product_id'). as_list()
+    pdct_Id_lst = []
+
+    # GET all the ids of e.a. product
+    for i in range(len(pdctId_lst_dic)):
+        pdct_Id_lst.append(pdctId_lst_dic[i]['product_id'])
+
+    # REPITE en cada uno de los productos filtrados por proveedor
+    # si el producto no esta en chart entonce lo borra
+    r = dict(chart)
+    for pdct_Id in pdct_Id_lst:
+        if "product_" + str(pdct_Id) in chart == False:
+            del r["product_" +str(pdct_Id)]
+
+    return r
+
+
+def chartGenerator(pdctId_lst, productsPerPo_lst, pdctNames_lst):
 
     # INPUT pdctNames_lst: all the product names grouped by name w.o. repetition
 
     # GENERATES  a dic with lists named as each product id
     totals_dic = {}
     for pdct in pdctId_lst:
-        name = "producto_" + str(pdct)
+        name = "product_" + str(pdct)
         totals_dic[name] = []
-'''
-    for j in range(len(productsPerPo_lst)):  # loops over ea purchase order
-        for k in range(len(productsPerPo_lst[j])):  # loops over ea product
-            print productsPerPo_lst[j][k]['po_detail'].values()
-            for ids in pdctId_lst:
-                exist = ids in productsPerPo_lst[j][k][
-                    'po_detail'].values()  # check if the product.id of the list is in the product "k" of purchase order "j"
-                pres = productsPerPo_lst[j][k]['product']['pres']
-                qty = productsPerPo_lst[j][k]['po_detail']['quantity']
-                print ("for j: ", j, " k: ", k, "id is:", ids, "exist is: ")
-                print exist
-                if exist != False:
-                    totals_dic["producto_" + str(ids)].append(int(pres) * int(qty))
-                if ids == pdctId_lst[-1]:
-                    print "este es el ultimo"
-                totals_dic["producto_" + str(ids)].append(sum(totals_dic))'''
 
     for ids in pdctId_lst:   # loops over ea consolidated produc Id
         for j in range(len(productsPerPo_lst)): # loops over ea PO
@@ -71,21 +91,21 @@ def chartGenerator(pdctId_lst, productsPerPo_lst, pdctName_lst):
                 print ("for j: ", j, " k: ", k, "id is:", ids, "exist is: ")
                 print exist
                 if exist != False:
-                    totals_dic["producto_" + str(ids)].append(int(pres) * int(qty))  # Incluye en la lista subtotales
+                    totals_dic["product_" + str(ids)].append(int(pres) * int(qty))
+                    print "tamano"
+                    print len(totals_dic)
 
-    # ADDS product's names and adds up the sublist elements
+    # AGREGA el texto con el nombre del producto y el total para cada uno de estos
     for i in range(len(pdctNames_lst)):
         pdctName = str(pdctNames_lst[i])
-        totals_lst = totals_dic["producto_" + str(pdctId_lst[i])]
+        pdctKey = totals_dic["product_" + str(pdctId_lst[i])] # Ubica la lista correspondiente a cada producto dentro del diccionario por su key
         #print "pdctName[i]: "
         #print pdctNames_lst[i]
         #print "totals_dic"
-        #print totals_dic["producto_" + str(pdctId_lst[i])]
-        totals_lst.insert(0,pdctNames_lst[i])
-        totals_lst.insert(len(totals_lst), sum(totals_lst[1:]))
-        totals = totals_dic.values() # Convierte el diccionario en lista de sublistas
-    return totals
-
+        #print totals_dic["product_" + str(pdctId_lst[i])]
+        pdctKey.insert(0,pdctNames_lst[i]) # A cada lista agrega el nombre
+        pdctKey.insert(len(pdctKey), sum(pdctKey[1:])) # En cada lista agrega su total
+        #totals = totals_dic.values()
     return totals_dic
 
 def getNames(queryBase):
