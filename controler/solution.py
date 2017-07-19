@@ -1,60 +1,135 @@
 def ppal(queryBase):
+    print "\n"* 4
+    print "***** +-+-+-+-+-+-+-+-+-+-+-+ NUEVO CALCULO +-+-+-+-+-+-+-+-+-+-+-+-+ ***"
     # 0. CALL getPo
     po = getPo(queryBase)
+    print "estas son las pos: ","\n", po, "\n"
     # 1. CALL getNames
     names = getNames(queryBase)
+    print "estos son los products.name sin repetir: ","\n", names, "\n"
 
     # 2. CALL  getIds & pass through charGenerator
     ids = getIds(queryBase)
     # ids_dic = chartGenerator(ids)
+    print "esto son los products.ids sin repetir: ","\n", ids, "\n"
+
 
     # 3. CALL productsPerPo
     pdcts = productsPerPo(queryBase)
+    print "los pos.ids sin repetir: ","\n", pdcts['b'], "\n"
+    print "products by po", "\n", pdcts['a'], "\n"
 
     # 4. CALL chartGenertator
     chart = chartGenerator(ids, pdcts['a'], names)
+    print "este es el cuadro","\n", chart, "\n"
+
 
     # 5. CALL  filterPerSupplier
     ids2 = filterPerSupplier(queryBase, 0, chart)
+    print "estos son los productos filtrados por proveedor 0: ","\n", ids2, "\n"
+
     ids3 = filterPerSupplier(queryBase, 1, chart)
+    print "estos son los productos filtrados por proveedor 1: ","\n", ids3, "\n"
+
     ids4 = filterPerSupplier(queryBase, 2, chart)
+    print "estos son los productos filtrados por proveedor 2: ", "\n", ids4, "\n"
 
     #6. CALL htmlGenerator
-    htmlGenerator(ids2, 0, po)
-    htmlGenerator(ids3, 1, po)
-    htmlGenerator(ids4, 2, po)
+    htmlGenerator(len(pos), chart)
+    #htmlGenerator(ids2, 0, po)
+    #htmlGenerator(ids3, 1, po)
+    #htmlGenerator(ids4, 2, po)
 
-    print "estos son los products.name sin repetir"
-    print names
-    print "\n"
-    print "esto son los products.ids sin repetir"
-    print ids
-    print "\n"
-    print "los pos.ids sin repetir"
-
-    print pdcts['b']
-    print "\n"
-    print "products by po"
-    print pdcts['a']
-    print "\n"
-    # print "esta es a lista preliminar de subtotales"
-    # print ids_dic
-
-    print "\n"
-    print "este es el cuadro"
-    print chart
-
-    print "\n"
-    print "estos son los productos filtrados por proveedor: "
-    print "\n"
-    print ids2
-    print ids3
-    print ids4
-    print "\n"
-    print "estas son las pos"
-    print po
     return
 
+def htmlGenerator(numberOfPos, totals_dic):
+    # esta funcion genera el cuadro consolidado de pedidos en formato html
+    # INPUT:
+    #       numberOfPos: int es el numero de pedidos
+    #           chart: dic -> es el consolidado de productos de los productos
+    #                  ejemplo: {'producto_567': ['Papa criolla organica', 1500, 1500], 'producto_481': ['Acelga organica', 1000, 500, 1500], 'producto_493': ['Banano Bocadillo organico', 6, 6],....}
+    # OUTPUT:
+    #        archivo html de nombre ConsolidadoEssencia.html
+    #        summaryChartRows: list -> consolidado en forma de lista y con un espacio "  " en el subtotal para un producto que no tiene cantidad
+    #                   ejemplo: [['Papa criolla organica', 1500,"  ", 1500], ['Acelga organica', 1000, 500, 1500], ['Banano Bocadillo organico', 6,"  ", 6], ...]
+    print "+++++++++++++++++  STARTING htmlGenerator  ++++++++++++++++++++++++++"
+    header = ["producto", "1111", "1112", "total"] # TODO header auto
+    consolidado = totals_dic.values()
+    print ("consolidado es: ", consolidado)
+    for x in range(len(totals_dic)):  # iterando sobre los productos
+        if x == 0:
+            inicio = 0
+            fin = 0 + numberOfPos
+        else:
+            inicio = x * numberOfPos
+            fin = inicio + numberOfPos
+
+        print ("inicio ", inicio)
+        print ("fin es: ", fin)
+        summaryCharRows = []
+        #summaryCharRows.append(a_lst[x])
+        for y in range(inicio, fin):
+            #summaryCharRows.append(z_lst[y])
+            summaryCharRows.append("        ")
+
+        #summaryCharRows.append(sum(z_lst[inicio:fin]))
+        summaryCharRows.append("        ")
+        #table.append(summaryCharRows)
+    htmlcode = HTML.table(consolidado, header_row=header)  # crea el codigo html de la tabla
+    # print htmlcode                                                        # impresion de prueba codigo html de la tabla
+    myText = "Este es el consolidado de la fecha"
+    html = """
+            <html> 
+                <head>
+                    <title>Tabla consolidado de los pedidos a procesar</title>
+                    <style type="text/css">
+                        /**/
+                        h2 {font-family:Helvetica; color: #545454}
+                        /* Changes the font family */
+                        table {font-family:Helvetica;}
+
+                        /* Make cells a bit taller and set border color */
+                        td, th { border: 1px solid #696969; height: 30px; text-align: left;}
+
+                        th {font-size: small; /*font size for header row*/
+                        font-weight: bold; /* Make sure they're bold */
+                        color:#696969; /*font color*/
+
+        }
+
+                        /* Changes the background color of every odd row to light gray */
+                        /*table th:nth-child(1) { font-weight: bold}*/
+
+                        /* Changes the background color of every odd row to light gray */
+                        /*table tr:nth-of-type(odd) {  background-color: #dbdbdb;}*/
+
+                        /* Changes the background color of every odd column to light gray */
+                        table td:nth-of-type(even) {  background-color: #dbdbdb;}
+
+                        /* Changes the weight of each td cell within each odd row to bold */
+                        table tr:nth-of-type(odd) td {  font-weight: bold;}
+
+                        /* Collapses table borders to make the table appear continuous */
+                        table {  border-collapse: collapse;}
+                        td:not(:first-child) {width:80px} /*all columns except the first*/
+
+
+                    </style>
+                <head>
+                <body>                 
+                    <h2>%s</h2>
+                    Aqui va texto adicional
+                    <strong> %s </strong>
+                <body>
+            <html>
+            """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
+    f = open("consolidadoDePedidos", "w")  # crea archivo html
+    f.write(html)  # Escribe en el archivo html
+    f.close()  # Guarda archivo html
+
+    return
+
+'''
 def htmlGenerator(s_lst, proveedorI, poNumber_lst):
     # esta funcion genera un archivo html (consolidadoDePedidos.html) a partir del consolidado de productos (s_lst)
     # INPUTS:
@@ -62,13 +137,27 @@ def htmlGenerator(s_lst, proveedorI, poNumber_lst):
     # OUTPUTS:
 
     print "+++++++++++++++++  STARTING htmlGenerator  ++++++++++++++++++++++++++"
+'''
     # GENERA el header de la tabla html
     header = ["PRODUCTO"]    # crea la lista que contiene el header
     for x in poNumber_lst:
         header.append(str(x))
         header.append("ENTREGADO ")
     header.append("TOTAL")
-    header.append("ENTREGADO")
+    header.append("ENTREGADO")'''
+    header = ["producto", "1111", "1112", "total"]
+    # AGREGA los espacios necesarios para crear la columna ENTREGADO
+    for item in s_lst:
+        print ("el tamano de item-i es: ", len(item))
+        for x in range(len(item)-1):
+
+            if x != 0:
+                print ("x es:", x)
+                item.insert(2*x,"aqui va")
+                print ("item es: ", item)
+
+    print s_lst
+
 
     htmlcode = HTML.table(s_lst, header_row=header)  # crea el codigo html de la tabla
     # print htmlcode                                                        # impresion de prueba codigo html de la tabla
@@ -118,10 +207,10 @@ def htmlGenerator(s_lst, proveedorI, poNumber_lst):
             <body>
         <html>
         """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
-    f = open("consolidadoDePedidoshtml", "w")  # crea archivo html
+    f = open("consolidadoEssencia.html", "w")  # crea archivo html
     f.write(html)  # Escribe en el archivo html
     f.close()  # Guarda archivo html
-    return
+    return'''
 
 
 def filterPerSupplier(queryBase, proveedorI, chart):
