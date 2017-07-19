@@ -1,4 +1,6 @@
 def ppal(queryBase):
+    # 0. CALL getPo
+    po = getPo(queryBase)
     # 1. CALL getNames
     names = getNames(queryBase)
 
@@ -16,6 +18,11 @@ def ppal(queryBase):
     ids2 = filterPerSupplier(queryBase, 0, chart)
     ids3 = filterPerSupplier(queryBase, 1, chart)
     ids4 = filterPerSupplier(queryBase, 2, chart)
+
+    #6. CALL htmlGenerator
+    htmlGenerator(ids2, 0, po)
+    htmlGenerator(ids3, 1, po)
+    htmlGenerator(ids4, 2, po)
 
     print "estos son los products.name sin repetir"
     print names
@@ -43,6 +50,77 @@ def ppal(queryBase):
     print ids2
     print ids3
     print ids4
+    print "\n"
+    print "estas son las pos"
+    print po
+    return
+
+def htmlGenerator(s_lst, proveedorI, poNumber_lst):
+    # esta funcion genera un archivo html (consolidadoDePedidos.html) a partir del consolidado de productos (s_lst)
+    # INPUTS:
+    #
+    # OUTPUTS:
+
+    print "+++++++++++++++++  STARTING htmlGenerator  ++++++++++++++++++++++++++"
+    # GENERA el header de la tabla html
+    header = ["PRODUCTO"]    # crea la lista que contiene el header
+    for x in poNumber_lst:
+        header.append(str(x))
+        header.append("ENTREGADO ")
+    header.append("TOTAL")
+    header.append("ENTREGADO")
+
+    htmlcode = HTML.table(s_lst, header_row=header)  # crea el codigo html de la tabla
+    # print htmlcode                                                        # impresion de prueba codigo html de la tabla
+    myText = "Este es el consolidado de la fecha"
+    html = """
+        <html> 
+            <head>
+                <title>Tabla consolidado de los pedidos a procesar</title>
+                <style type="text/css">
+                    /**/
+                    h2 {font-family:Helvetica; color: #545454}
+                    /* Changes the font family */
+                    table {font-family:Helvetica;}
+
+                    /* Make cells a bit taller and set border color */
+                    td, th { border: 1px solid #696969; height: 30px; text-align: left;}
+
+                    th {font-size: small; /*font size for header row*/
+                    font-weight: bold; /* Make sure they're bold */
+                    color:#696969; /*font color*/
+
+    }
+
+                    /* Changes the background color of every odd row to light gray */
+                    /*table th:nth-child(1) { font-weight: bold}*/
+
+                    /* Changes the background color of every odd row to light gray */
+                    /*table tr:nth-of-type(odd) {  background-color: #dbdbdb;}*/
+
+                    /* Changes the background color of every odd column to light gray */
+                    table td:nth-of-type(even) {  background-color: #dbdbdb;}
+
+                    /* Changes the weight of each td cell within each odd row to bold */
+                    table tr:nth-of-type(odd) td {  font-weight: bold;}
+
+                    /* Collapses table borders to make the table appear continuous */
+                    table {  border-collapse: collapse;}
+                    td:not(:first-child) {width:80px} /*all columns except the first*/
+
+
+                </style>
+            <head>
+            <body>                 
+                <h2>%s</h2>
+                Aqui va texto adicional
+                <strong> %s </strong>
+            <body>
+        <html>
+        """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
+    f = open("consolidadoDePedidoshtml", "w")  # crea archivo html
+    f.write(html)  # Escribe en el archivo html
+    f.close()  # Guarda archivo html
     return
 
 
@@ -86,12 +164,34 @@ def filterPerSupplier(queryBase, proveedorI, chart):
         #print ("esta ? ", esta)
         if esta == False:  # SI no existe para ese proveedor...
             del r[key]     # BORRA el producto (key) del chart
-    s = r.values()         # CONVIERTE a formato lista de sublistas
-    return s
+    s_lst = r.values()         # CONVIERTE a formato lista de sublistas
+    return s_lst
 
 def chartGenerator(pdctId_lst, productsPerPo_lst, pdctNames_lst):
-
-    # INPUT pdctNames_lst: all the product names grouped by name w.o. repetition
+    # esta funcion genera un consolidado de productos por orden de compra y suma los subtotales por producto
+    # INPUT:
+    #       queryBase:     str -> es query tipo DAL web2py con el listado de los productos entre las fechas ingresadas
+    #                      ejemplo: ((((po.id = po_detail.po_id) AND (po_detail.product_id = product.id)) AND (po.date >= '2017-05-23 17:43:11')) AND (po.date <= '2017-05-26 15:16:00'))
+    #       productsPerPo_lst: -> es el agregado de todos los productos del (queryBase) organizados por orden de compra
+    #                       -> es una lista con n elementos donde n es el numero de pedidos
+    #                       -> cada elemento contiene m diccionarios donde m es el numero de productos
+    #                       ejemplo:
+    #                       [[{'product': {'name': 'Acelga organica', 'pres': '500'}, 'po_detail': {'product_id': 481L, 'quantity': '2'}, 'po': {'po_number': 1111L, 'customer_id': 1L}},
+    #                        {'product': {'name': 'Huevos de granja organica', 'pres': '6'}, 'po_detail': {'product_id': 542L, 'quantity': '2'}, 'po':
+    #                       {'po_number': 1111L, 'customer_id': 1L}}, {'product': {'name': 'Papa criolla organica', 'pres': '500'}, 'po_detail': {'product_id': 567L, 'quantity': '3'},
+    #                       'po': {'po_number': 1111L, 'customer_id': 1L}}, {'product': {'name': 'Banano organico', 'pres': '6'}, 'po_detail': {'product_id': 494L, 'quantity': '3'},
+    #                       'po': {'po_number': 1111L, 'customer_id': 1L}}],
+    #                       [{'product': {'name': 'Banano Bocadillo organico', 'pres': '6'}, 'po_detail': {'product_id': 493L, 'quantity': '1'}, 'po': {'po_number': 1112L, 'customer_id': 18L}},
+    #                       ......]]
+    #
+    #       pdctNames_lst: es una lista con que contiene los numeros de pedido
+    #                       ejemplo:
+    #                       [1111L, 1112L]
+    # OUTPUT:
+    #       totals_dic: es un diccionario que contiene el consolidado
+    #                       ejemplo:
+    #                       {'producto_567': ['Papa criolla organica', 1500, 1500], 'producto_481': ['Acelga organica', 1000, 500, 1500], 'producto_493': ['Banano Bocadillo organico', 6, 6],
+    #                       'producto_542': ['Huevos de granja organica', 12, 12], 'producto_590': ['Tomate chonto organico', 2000, 2000], 'producto_497': ['Brocoli organico', 500, 500], ...}
 
     # GENERATES  a dic with lists named as each product id
     totals_dic = {}
@@ -126,6 +226,21 @@ def chartGenerator(pdctId_lst, productsPerPo_lst, pdctNames_lst):
         pdctKey.insert(len(pdctKey), sum(pdctKey[1:])) # En cada lista agrega su total
 
     return totals_dic
+
+def getPo(queryBase):
+    # THIS function gets po numbers
+    # INPUT queryBase: str
+    # OUTPUT poNumber_lst
+    # -----------------------------------------------------
+    print "+++++++++++++++++  STARTING GET PO NUMBER FUNCTION   ++++++++++++++++++++++++++"
+    poNumber_lst_dic = db(queryBase).select(db.po.po_number, groupby='po_number').as_list()
+    poNumber_lst=[]
+
+    # GET all the names of e.a. product
+    for i in range(len(poNumber_lst_dic)):
+        poNumber_lst.append(poNumber_lst_dic[i]['po_number'])
+
+    return poNumber_lst
 
 def getNames(queryBase):
     # THIS function gets all the names with no repetition
