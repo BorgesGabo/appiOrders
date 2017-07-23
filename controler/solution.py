@@ -49,14 +49,25 @@ def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
                                                db.product.name,
                                                db.product.pres, db.po.customer_id, orderby="product.name",
                                                groupby='product.id').as_list()
+        # OBTIENE LOS product.id de los que hacen parte del pedido
         print "los detalles del pedido son: ", products_lst
         productsId_lst = db(queryPos).select(db.po_detail.product_id, groupby='po_detail.product_id').as_list()
         print "los ids de los del pedido son: ", productsId_lst
-
+        # *************esto esta por revisar
         # CONVIERTE la lista que contiene product.id lo demas lo elimina
         for j in range(len(productsId_lst)):
             poProductId_lst.append(productsId_lst[j]['product_id'])
         print "estos son los ids por pedido", poProductId_lst
+
+        # OBTIENE los product.pres de los que hacen parte del pedido
+        productsPres_lst = db(queryPos).select(db.product.pres, groupby='po_detail.product_id').as_list()
+        for j in range(len(productsPres_lst_lst)):
+            poProductId_lst.append(productsPres_lst_lst[j]['product_id'])
+        print "estos son los ids por pedido", poProductId_lst
+        # OBTIENE los po_detail.qty de los que hacen parte del pedido
+        productsQty_lst = db(queryPos).select(db.po_detail.quantity, groupby='po_detail.product_id').as_list()
+        # ******************
+
     '''
     for i in range(len(pdctId_lst)):  # REPETIR para cada product.id de la lista
         summaryChart_lst.append(pdctNames_lst[i]) # OBTIENE el nombre y lo ingresa en summaryChart_lst
