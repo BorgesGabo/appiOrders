@@ -21,100 +21,12 @@ def ppal(queryBase):
     print "estos son los product.name sin repetir: ","\n", names_lst, "\n"
 
     # CALL chartGenerator2
-    productsPerPo_lst = chartGenerator2(queryBase, po_lst)
+    productsPerPo_lst = chartGenerator2(queryBase, po_lst, ids_lst, names_lst)
     print "estos son los productos por po: ","\n", productsPerPo_lst, "\n"
-
-
-
-
-
-    '''
-    # 3. CALL productsPerPo
-    pdcts = productsPerPo(queryBase)
-    print "los pos.ids sin repetir: ","\n", pdcts['b'], "\n"
-    print "products by po", "\n", pdcts['a'],def ppal(queryBase):
-    # esta funcion controla el algoritmo para sacar todos los consolidados
-    # en otras palabras este es el nucleo del programa
-    #--------------------------------------
-    # Se llama consolidado a un listado que contiene la variable mencionada de todos los productos que fueron comprados o pedidos entre
-    # del rango de fechas. El listado no contiene repeticiones
-    #---------------------------------------
-    print "\n"* 4
-    print "*****                    NUEVO CALCULO                    *****"
-    # OBTIENE el listado de las pos
-    po_lst = getPo(queryBase)
-    print "estas son las pos: ","\n", po_lst, "\n"
-
-    # OBTIENE el consolidado de los po.ids_lst alfabeticamente por nombre
-    ids_lst = getIds(queryBase)
-    # ids_dic = chartGenerator(ids)
-    print "esto son los product.id sin repetir: ", "\n", ids_lst, "\n"
-
-    # OBTIENE el consolidado de los product.names alfabeticamente
-    names_lst = getNames(queryBase)
-    print "estos son los product.name sin repetir: ","\n", names_lst, "\n"
-
-    # CALL chartGenerator2
-    productsPerPo_lst = chartGenerator2(queryBase, po_lst)
-    print "estos son los productos por po: ","\n", productsPerPo_lst, "\n"
-
-
-
-
-
-    '''
-    # 3. CALL productsPerPo
-    pdcts = productsPerPo(queryBase)
-    print "los pos.ids sin repetir: ","\n", pdcts['b'], "\n"
-    print "products by po", "\n", pdcts['a'], "\n"
-
-    # 4. CALL chartGenertator
-    chart = chartGenerator(ids, pdcts['a'], names)
-    print "este es el cuadro","\n", chart, "\n"
-
-
-    # 5. CALL  filterPerSupplier
-    ids2 = filterPerSupplier(queryBase, 0, chart)
-    print "estos son los productos filtrados por proveedor 0: ","\n", ids2, "\n"
-
-    ids3 = filterPerSupplier(queryBase, 1, chart)
-    print "estos son los productos filtrados por proveedor 1: ","\n", ids3, "\n"
-
-    ids4 = filterPerSupplier(queryBase, 2, chart)
-    print "estos son los productos filtrados por proveedor 2: ", "\n", ids4, "\n"
-
-    #6. CALL htmlGenerator
-    htmlGenerator(len(po), chart)
-    #htmlGenerator(ids2, 0, po)
-    #htmlGenerator(ids3, 1, po)
-    #htmlGenerator(ids4, 2, po)'''
-
-    return "\n"
-
-    # 4. CALL chartGenertator
-    chart = chartGenerator(ids, pdcts['a'], names)
-    print "este es el cuadro","\n", chart, "\n"
-
-
-    # 5. CALL  filterPerSupplier
-    ids2 = filterPerSupplier(queryBase, 0, chart)
-    print "estos son los productos filtrados por proveedor 0: ","\n", ids2, "\n"
-
-    ids3 = filterPerSupplier(queryBase, 1, chart)
-    print "estos son los productos filtrados por proveedor 1: ","\n", ids3, "\n"
-
-    ids4 = filterPerSupplier(queryBase, 2, chart)
-    print "estos son los productos filtrados por proveedor 2: ", "\n", ids4, "\n"
-
-    #6. CALL htmlGenerator
-    htmlGenerator(len(po), chart)
-    #htmlGenerator(ids2, 0, po)
-    #htmlGenerator(ids3, 1, po)
-    #htmlGenerator(ids4, 2, po)'''
 
     return
 
-def chartGenerator2(queryBase, poNumber_lst):
+def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
     #esta funcion genera un arreglo de listas con el consolidado de los pedidos
     # INPUT:
     #       poNumber_lst
@@ -122,14 +34,49 @@ def chartGenerator2(queryBase, poNumber_lst):
     #       pdctId_lst
     #       queryBase
 
-    for poNumber in poNumber_lst:
+    # CREA la lista donde guardara todos los datos del consolidado
+    summaryChart_lst =[]
+
+    # CREA la lista donde se guardan los product.id de los productos de cada pedido
+
+
+    for poNumber in poNumber_lst:  # REPETIR para cada po.po_number de la lista
+        poProductId_lst = []
         queryPos = queryBase
-        queryPos &= db.po.po_number == poNumber
+        queryPos &= db.po.po_number == poNumber  # CONSULTE el listado de productos para el po.poNumber del loop
         products_lst = db(queryPos).select(db.po.po_number, db.po_detail.product_id,
-                                           db.po_detail.quantity,
-                                           db.product.name,
-                                           db.product.pres, db.po.customer_id, groupby='product.name').as_list()
-        print products_lst, "\n"
+                                               db.po_detail.quantity,
+                                               db.product.name,
+                                               db.product.pres, db.po.customer_id, orderby="product.name",
+                                               groupby='product.id').as_list()
+        print "los detalles del pedido son: ", products_lst
+        productsId_lst = db(queryPos).select(db.po_detail.product_id, groupby='po_detail.product_id').as_list()
+        print "los ids de los del pedido son: ", productsId_lst
+
+        # CONVIERTE la lista que contiene product.id lo demas lo elimina
+        for j in range(len(productsId_lst)):
+            poProductId_lst.append(productsId_lst[j]['product_id'])
+        print "estos son los ids por pedido", poProductId_lst
+    '''
+    for i in range(len(pdctId_lst)):  # REPETIR para cada product.id de la lista
+        summaryChart_lst.append(pdctNames_lst[i]) # OBTIENE el nombre y lo ingresa en summaryChart_lst
+        for poNumber in poNumber_lst:  # REPETIR para cada po.po_number de la lista
+            poProductId_lst = []
+            queryPos = queryBase
+            queryPos &= db.po.po_number == poNumber  # CONSULTE el listado de productos para el po.poNumber del loop
+            products_lst = db(queryPos).select(db.po.po_number, db.po_detail.product_id,
+                                                   db.po_detail.quantity,
+                                                   db.product.name,
+                                                   db.product.pres, db.po.customer_id, orderby="product.name",
+                                                   groupby='product.id').as_list()
+            productsId_lst = db(queryPos).select(db.po_detail.product_id, groupby='po_detail.product_id').as_list()
+            print productsId_lst
+            # CONVIERTE la lista que contiene product.id lo demas lo elimina
+            for j in range(len(productsId_lst)):
+                poProductId_lst.append(productsId_lst[j]['product_id'])
+            if pdctId_lst[i] in poProductId_lst:
+                summaryChart_lst.append(products_lst[]) #TODO
+            print "estos son los ids por pedido", poProductId_lst'''
     return
 
 def htmlGenerator(numberOfPos, totals_dic):
