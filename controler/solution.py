@@ -24,6 +24,9 @@ def ppal(queryBase):
     productsPerPo_lst = chartGenerator2(queryBase, po_lst, ids_lst, names_lst)
     print "estos son los productos por po: ","\n", productsPerPo_lst, "\n"
 
+    # GENERA el archivo html
+    htmlGenerator(len(po_lst),productsPerPo_lst)
+
     return
 
 def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
@@ -90,7 +93,7 @@ def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
         summaryChartRow_lst.append(int(sum(summaryChartRow_lst[1:])))
         summaryChart_lst.append(summaryChartRow_lst) # AGREGA ese producto en el consolidado total
     print "\n"*2, "el consolidado total es: ", summaryChart_lst
-    return
+    return summaryChart_lst
 
 def htmlGenerator(numberOfPos, totals_dic):
     # esta funcion genera el cuadro consolidado de pedidos en formato html
@@ -103,9 +106,12 @@ def htmlGenerator(numberOfPos, totals_dic):
     #        summaryChartRows: list -> consolidado en forma de lista y con un espacio "  " en el subtotal para un producto que no tiene cantidad
     #                   ejemplo: [['Papa criolla organica', 1500,"  ", 1500], ['Acelga organica', 1000, 500, 1500], ['Banano Bocadillo organico', 6,"  ", 6], ...]
     print "+++++++++++++++++  STARTING htmlGenerator  ++++++++++++++++++++++++++"
-    header = ["producto", "1111", "entregado","1112","entregado", "total", "entregado"] # TODO header auto
-    consolidado_lst = totals_dic.values()
-    print ("consolidado_lst es: ", consolidado_lst)
+    header = ["producto", "1111", "ENTREGADO", "1112","ENTREGADO", "total", "ENTREGADO"] # TODO header auto
+
+    consolidado_lst = totals_dic
+    print ("consolidado_lst es: ", totals_dic)
+    '''#consolidado_lst = totals_dic.values()
+    print ("consolidado_lst es: ", consolidado_lst)'''
     for  consolidado in consolidado_lst:
         for i in range(len(consolidado)):
             if i !=0:
