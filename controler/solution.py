@@ -107,7 +107,10 @@ def htmlGenerator(numberOfPos, totals_dic):
     #                   ejemplo: [['Papa criolla organica', 1500,"  ", 1500], ['Acelga organica', 1000, 500, 1500], ['Banano Bocadillo organico', 6,"  ", 6], ...]
     print "+++++++++++++++++  STARTING htmlGenerator  ++++++++++++++++++++++++++"
     header = ["producto", "1111", "ENTREGADO", "1112","ENTREGADO", "total", "ENTREGADO"] # TODO header auto
-
+    # INPUT el listado de los pedidos
+    # SACAR el tamano del listado anterior y meterlo por numberOfPos
+    # header = listado de pedidos
+    # header meterlo en el loop para que incluya pos
     consolidado_lst = totals_dic
     print ("consolidado_lst es: ", totals_dic)
     '''#consolidado_lst = totals_dic.values()
