@@ -110,7 +110,7 @@ def htmlGenerator(numberOfPos, totals_dic):
     # INPUT el listado de los pedidos
     # SACAR el tamano del listado anterior y meterlo por numberOfPos
     # header = listado de pedidos
-    # header meterlo en el loop para que incluya pos
+    # header meterlo en el loop para que incluya los espacios tambien
     consolidado_lst = totals_dic
     print ("consolidado_lst es: ", totals_dic)
     '''#consolidado_lst = totals_dic.values()
