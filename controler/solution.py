@@ -34,45 +34,20 @@ def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
     #       pdctId_lst
     #       queryBase
 
-    # CREA la lista donde guardara todos los datos del consolidado
+
+
+    # CREA la lista donde guarda el consolidado como lista de sublistas
     summaryChart_lst =[]
 
-    # CREA la lista donde se guardan los product.id de los productos de cada pedido
-
-
-    for poNumber in poNumber_lst:  # REPETIR para cada po.po_number de la lista
-        poProductId_lst = []
-        queryPos = queryBase
-        queryPos &= db.po.po_number == poNumber  # CONSULTE el listado de productos para el po.poNumber del loop
-        products_lst = db(queryPos).select(db.po.po_number, db.po_detail.product_id,
-                                               db.po_detail.quantity,
-                                               db.product.name,
-                                               db.product.pres, db.po.customer_id, orderby="product.name",
-                                               groupby='product.id').as_list()
-        # OBTIENE LOS product.id de los que hacen parte del pedido
-        print "los detalles del pedido son: ", products_lst
-        productsId_lst = db(queryPos).select(db.po_detail.product_id, groupby='po_detail.product_id').as_list()
-        print "los ids de los del pedido son: ", productsId_lst
-        # *************esto esta por revisar
-        # CONVIERTE la lista que contiene product.id lo demas lo elimina
-        for j in range(len(productsId_lst)):
-            poProductId_lst.append(productsId_lst[j]['product_id'])
-        print "estos son los ids por pedido", poProductId_lst
-
-        # OBTIENE los product.pres de los que hacen parte del pedido
-        productsPres_lst = db(queryPos).select(db.product.pres, groupby='po_detail.product_id').as_list()
-        for j in range(len(productsPres_lst_lst)):
-            poProductId_lst.append(productsPres_lst_lst[j]['product_id'])
-        print "estos son los ids por pedido", poProductId_lst
-        # OBTIENE los po_detail.qty de los que hacen parte del pedido
-        productsQty_lst = db(queryPos).select(db.po_detail.quantity, groupby='po_detail.product_id').as_list()
-        # ******************
-
-    '''
     for i in range(len(pdctId_lst)):  # REPETIR para cada product.id de la lista
-        summaryChart_lst.append(pdctNames_lst[i]) # OBTIENE el nombre y lo ingresa en summaryChart_lst
+        # CREA la lista donde guardara todos los datos del consolidado o reinicia la lista con cada pdctIds_lst
+        summaryChartRow_lst = []
+        summaryChartRow_lst.append(pdctNames_lst[i]) # OBTIENE el nombre y lo ingresa en summaryChartRow_lst
+
         for poNumber in poNumber_lst:  # REPETIR para cada po.po_number de la lista
             poProductId_lst = []
+            poProductPres_lst=[]
+            poProductQty_lst=[]
             queryPos = queryBase
             queryPos &= db.po.po_number == poNumber  # CONSULTE el listado de productos para el po.poNumber del loop
             products_lst = db(queryPos).select(db.po.po_number, db.po_detail.product_id,
@@ -80,14 +55,41 @@ def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
                                                    db.product.name,
                                                    db.product.pres, db.po.customer_id, orderby="product.name",
                                                    groupby='product.id').as_list()
+
+            print "\n","los detalles del pedido son: ", products_lst
+
+            # OBTIENE LOS product.id de los que hacen parte del pedido
             productsId_lst = db(queryPos).select(db.po_detail.product_id, groupby='po_detail.product_id').as_list()
-            print productsId_lst
+            print "los ids de los del pedido son: ", productsId_lst
             # CONVIERTE la lista que contiene product.id lo demas lo elimina
             for j in range(len(productsId_lst)):
                 poProductId_lst.append(productsId_lst[j]['product_id'])
-            if pdctId_lst[i] in poProductId_lst:
-                summaryChart_lst.append(products_lst[]) #TODO
-            print "estos son los ids por pedido", poProductId_lst'''
+            print "\n","estos son los ids por pedido", poProductId_lst
+
+            # OBTIENE los product.pres de los que hacen parte del pedido
+            productsPres_lst = db(queryPos).select(db.product.pres, groupby='po_detail.product_id').as_list()
+            for j in range(len(productsPres_lst)):
+                poProductPres_lst.append(productsPres_lst[j]['pres'])
+            print "\n","este es el listado de presentaciones", poProductPres_lst
+
+            # OBTIENE los po_detail.qty de los que hacen parte del pedido
+            productsQty_lst = db(queryPos).select(db.po_detail.quantity, groupby='po_detail.product_id').as_list()
+            for j in range(len(productsQty_lst)):
+                poProductQty_lst.append(productsQty_lst[j]['quantity'])
+            print  "\n","este es el listado de cantidades: ", poProductQty_lst
+            print "\n", "el product.id a buscar es:", pdctId_lst[i]
+            if pdctId_lst[i] in poProductId_lst: # SI el product.id del consolidado esta en los de ese pedido...
+                position_lst = [k for k, x in enumerate(poProductId_lst) if x ==pdctId_lst[i]] # BUSQUE donde esta y devuelva la posicion como entero
+                position = position_lst[0] # CONVIERTE el resultado anterior a un entero
+                print "\n","la posicion del product.id en la lista de los ids del pedido es: ", position
+                summaryChartRow_lst.append(int(poProductQty_lst[position])*int(poProductPres_lst[position])) # OBTIENE la cantidad y presentacion, las multiplica y las agrega al consolidado
+            else:
+                print "no esta"
+                summaryChartRow_lst.append(0) # SI el product.id no esta en ese pedido agregue un cero a la lista
+            print "\n", "la lista por producto es: ", summaryChartRow_lst
+        summaryChartRow_lst.append(int(sum(summaryChartRow_lst[1:])))
+        summaryChart_lst.append(summaryChartRow_lst) # AGREGA ese producto en el consolidado total
+    print "\n"*2, "el consolidado total es: ", summaryChart_lst
     return
 
 def htmlGenerator(numberOfPos, totals_dic):
