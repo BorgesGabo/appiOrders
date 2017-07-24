@@ -20,7 +20,7 @@ def ppal(queryBase):
     names_lst = getNames(queryBase)
     print "estos son los product.name sin repetir: ","\n", names_lst, "\n"
 
-    # CALL chartGenerator2
+    # OBTIENE el consolidado total de los pedidos
     productsPerPo_lst = chartGenerator2(queryBase, po_lst, ids_lst, names_lst)
     print "estos son los productos por po: ","\n", productsPerPo_lst, "\n"
 
@@ -30,13 +30,19 @@ def ppal(queryBase):
     return
 
 def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
-    #esta funcion genera un arreglo de listas con el consolidado de los pedidos
+    # esta funcion genera un arreglo de listas con el consolidado de los pedidos
     # INPUT:
-    #       poNumber_lst
-    #       pdctNames_lst
-    #       pdctId_lst
-    #       queryBase
-
+    #       queryBase: str -> es query tipo DAL web2py con el listado de los productos entre las fechas ingresadas
+    #                      ejemplo: ((((po.id = po_detail.po_id) AND (po_detail.product_id = product.id)) AND (po.date >= '2017-05-23 17:43:11')) AND (po.date <= '2017-05-26 15:16:00'))
+    #       poNumber_lst: -> contiene un listado con los po.po_number entre las fechas especificadas queryBase
+    #                        ejemplo: [1111L, 1112L]
+    #       pdctNames_lst -> contiene el listado con los product.name entre las fechas especificadas queryBase
+    #                        ejemplo: ['Acelga organica', 'Banano Bocadillo organico', 'Banano organico', 'Brocoli organico', ...]
+    #       pdctId_lst  ->   contiene los product.id entre las fechas especificadas por queryBase
+    #                        ejemplo: [481L, 493L, 494L, 497L, 542L, 567L, 583L, 590L]
+    # OUTPUT:
+    #       summaryChart_lst -> es un listado de listas que contiene el consolidado de todos los pedidos entreg las fechas del queryBase con nombre de producto y total
+    #                        ejemplo: [['Acelga organica', 1000, 500, 1500], ['Banano Bocadillo organico', 0, 6, 6], ['Banano organico', 18, 0, 18],...]
 
 
     # CREA la lista donde guarda el consolidado como lista de sublistas
@@ -44,7 +50,7 @@ def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
 
     for i in range(len(pdctId_lst)):  # REPETIR para cada product.id de la lista
         # CREA la lista donde guardara todos los datos del consolidado o reinicia la lista con cada pdctIds_lst
-        summaryChartRow_lst = []
+        summaryChartRow_lst = [] # esta lista guardara el product.name, qty*pres y totales
         summaryChartRow_lst.append(pdctNames_lst[i]) # OBTIENE el nombre y lo ingresa en summaryChartRow_lst
 
         for poNumber in poNumber_lst:  # REPETIR para cada po.po_number de la lista
@@ -90,7 +96,7 @@ def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
                 print "no esta"
                 summaryChartRow_lst.append(0) # SI el product.id no esta en ese pedido agregue un cero a la lista
             print "\n", "la lista por producto es: ", summaryChartRow_lst
-        summaryChartRow_lst.append(int(sum(summaryChartRow_lst[1:])))
+        summaryChartRow_lst.append(int(sum(summaryChartRow_lst[1:]))) # TOTALIZA la cantidades por producto y lo agrega a la lista
         summaryChart_lst.append(summaryChartRow_lst) # AGREGA ese producto en el consolidado total
     print "\n"*2, "el consolidado total es: ", summaryChart_lst
     return summaryChart_lst
