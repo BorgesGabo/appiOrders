@@ -25,11 +25,16 @@ def ppal(queryBase):
     print "este es el consolidado: ","\n", chart_lst, "\n"
 
     # GENERA el archivo html
-    #htmlGenerator(po_lst,chart_lst)
+    htmlGenerator(po_lst,chart_lst)
 
     # FILTRA los nombres por proveeedor
     pdctsFiltered=filterSup(queryBase, 1, chart_lst)
+
+    # TO DO hacer el filtro de 1-numero de proveedores y REPETIR
+
     return
+
+# TO DO funcion que crea archivo xls y lo nombra para cada proveedor
 
 def filterSup(queryBase, supplierId, summaryChartLst):
     print "+++++++++++++++++  STARTING filterPerSup  ++++++++++++++++++++++++++"
@@ -67,7 +72,6 @@ def filterSup(queryBase, supplierId, summaryChartLst):
 
 
     return chartPerSupplier_lst
-
 
 def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
     # esta funcion genera un arreglo de listas con el consolidado de los pedidos
@@ -226,110 +230,6 @@ def htmlGenerator(po_lst, chart_lst):
 
     return
 
-def filterPerSupplier(queryBase, proveedorI, chart):
-    # esta funcion filtra el consolidado de productos (chart) de la funcion charGenerator() y produce un consolidado de productos para el proveedorI
-    # INPUTS:
-    #       queryBase: str -> es query tipo DAL web2py con el listado de los productos entre las fechas ingresadas
-    #                      ejemplo: ((((po.id = po_detail.po_id) AND (po_detail.product_id = product.id)) AND (po.date >= '2017-05-23 17:43:11')) AND (po.date <= '2017-05-26 15:16:00'))
-    #       proveedorI: int -> es un entero que representa el ID de la tabla: db.supplier.id (0-2)
-    #       chart: dic -> es el consolidado de productos de los productos
-    #                  ejemplo: {'producto_567': ['Papa criolla organica', 1500, 1500], 'producto_481': ['Acelga organica', 1000, 500, 1500], 'producto_493': ['Banano Bocadillo organico', 6, 6],....}
-    # OUTPUT
-    #       s:list -> es el consolidado por proveedor como una lista
-    #               ejemplo: []
-    #                        [['Acelga organica', 1000, 500, 1500], ['Huevos de granja organica', 12, 12]]
-    #                        [['Papa criolla organica', 1500, 1500], ['Banano Bocadillo organico', 6, 6], ...]
-
-    print "+++++++++++++++++  STARTING filterPerSupplier  ++++++++++++++++++++++++++"
-    # SACA listado de Ids de los productos por proveedor
-    #print ("esta es la queryBase", queryBase)
-    # EJECUTA la query y obtiene los productos para el proveedorI
-    queryBaseSupplier = queryBase
-    queryBaseSupplier &= db.product.supplier_id == proveedorI
-    pdctId_lst_dic = db(queryBaseSupplier).select(db.po_detail.product_id, groupby='product_id').as_list()
-    pdct_Id_lst = []
-
-    # OBTIENE el id de cada producto y los almacena en una lista simple
-    for i in range(len(pdctId_lst_dic)):
-        pdct_Id_lst.append(pdctId_lst_dic[i]['product_id'])
-
-    # CREA una copia del diccionario que contiene los resultados
-    r = dict(chart)
-    #print ("esta es la lista de los ids filtrados por proveedor", pdct_Id_lst)
-    #print ("este es el diccionario: ", chart)
-
-    # REPETIR para cada producto de chart
-    for key in chart:
-        esta = int(key[9:]) in pdct_Id_lst  # VERIFICA si cada producto de chart esta en la lista
-                                            # de los productos filtrados por proveedor
-        #print ("key is: ", key)
-        #print ("esta ? ", esta)
-        if esta == False:  # SI no existe para ese proveedor...
-            del r[key]     # BORRA el producto (key) del chart
-    s_lst = r.values()         # CONVIERTE a formato lista de sublistas
-    return s_lst
-
-def chartGenerator(pdctId_lst, productsPerPo_lst, pdctNames_lst):
-    # esta funcion genera un consolidado de productos por orden de compra y suma los subtotales por producto
-    # INPUT:
-    #       queryBase:     str -> es query tipo DAL web2py con el listado de los productos entre las fechas ingresadas
-    #                      ejemplo: ((((po.id = po_detail.po_id) AND (po_detail.product_id = product.id)) AND (po.date >= '2017-05-23 17:43:11')) AND (po.date <= '2017-05-26 15:16:00'))
-    #       productsPerPo_lst: -> es el agregado de todos los productos del (queryBase) organizados por orden de compra
-    #                       -> es una lista con n elementos donde n es el numero de pedidos
-    #                       -> cada elemento contiene m diccionarios donde m es el numero de productos
-    #                       ejemplo:
-    #                       [[{'product': {'name': 'Acelga organica', 'pres': '500'}, 'po_detail': {'product_id': 481L, 'quantity': '2'}, 'po': {'po_number': 1111L, 'customer_id': 1L}},
-    #                        {'product': {'name': 'Huevos de granja organica', 'pres': '6'}, 'po_detail': {'product_id': 542L, 'quantity': '2'}, 'po':
-    #                       {'po_number': 1111L, 'customer_id': 1L}}, {'product': {'name': 'Papa criolla organica', 'pres': '500'}, 'po_detail': {'product_id': 567L, 'quantity': '3'},
-    #                       'po': {'po_number': 1111L, 'customer_id': 1L}}, {'product': {'name': 'Banano organico', 'pres': '6'}, 'po_detail': {'product_id': 494L, 'quantity': '3'},
-    #                       'po': {'po_number': 1111L, 'customer_id': 1L}}],
-    #                       [{'product': {'name': 'Banano Bocadillo organico', 'pres': '6'}, 'po_detail': {'product_id': 493L, 'quantity': '1'}, 'po': {'po_number': 1112L, 'customer_id': 18L}},
-    #                       ......]]
-    #
-    #       pdctNames_lst: es una lista con que contiene los numeros de pedido
-    #                       ejemplo:
-    #                       [1111L, 1112L]
-    # OUTPUT:
-    #       totals_dic: es un diccionario que contiene el consolidado
-    #                       ejemplo:
-    #                       {'producto_567': ['Papa criolla organica', 1500, 1500], 'producto_481': ['Acelga organica', 1000, 500, 1500], 'producto_493': ['Banano Bocadillo organico', 6, 6],
-    #                       'producto_542': ['Huevos de granja organica', 12, 12], 'producto_590': ['Tomate chonto organico', 2000, 2000], 'producto_497': ['Brocoli organico', 500, 500], ...}
-
-    # GENERATES  a dic with lists named as each product id
-    totals_dic = {}
-    for pdct in pdctId_lst:
-        name = "product_" + str(pdct)
-        totals_dic[name] = []
-
-    for ids in pdctId_lst:   # loops over ea consolidated produc Id
-        for j in range(len(productsPerPo_lst)): # loops over ea PO
-            #print productsPerPo_lst[j][k]['po_detail'].values()
-            for k in range(len(productsPerPo_lst[j])):  # loops over ea product
-                exist = ids in productsPerPo_lst[j][k][
-                    'po_detail'].values()  # check if the product.id of the list is in the product "k" of purchase order "j"
-                pres = productsPerPo_lst[j][k]['product']['pres']
-                qty = productsPerPo_lst[j][k]['po_detail']['quantity']
-                print ("for j: ", j, " k: ", k, "id is:", ids, "exist is: ")
-                print exist
-                if exist != False:
-                    totals_dic["product_" + str(ids)].append(int(pres) * int(qty))
-                    print "tamano"
-                    print len(totals_dic)
-
-    # AGREGA el texto con el nombre del producto y el total para cada uno de estos
-    for i in range(len(pdctNames_lst)):
-        pdctName = str(pdctNames_lst[i])
-        pdctKey = totals_dic["product_" + str(pdctId_lst[i])] # Ubica la lista correspondiente a cada producto dentro del diccionario por su key
-        #print "pdctName[i]: "
-        #print pdctNames_lst[i]
-        #print "totals_dic"
-        #print totals_dic["product_" + str(pdctId_lst[i])]
-        pdctKey.insert(0,pdctNames_lst[i]) # A cada lista agrega el nombre
-        pdctKey.insert(len(pdctKey), sum(pdctKey[1:])) # En cada lista agrega su total
-
-    return totals_dic
-
-
 def getPo(queryBase):
     # esta funcion obtiene un listado con todos los po.po_number consolidados
     # INPUT:
@@ -385,38 +285,6 @@ def getIds(queryBase):
         pdctId_lst.append(pdctId_lst_dic[i]['po_detail']['product_id'])
 
     return pdctId_lst
-
-def productsPerPo(queryBase):
-    # THIS function produces a list of products per purchase order
-    # INPUT orders_lst, queryBase: query by dates
-    # OUTPUT productsPerPo_lst, pos_lst
-    # --------------------------------------------------------------
-    print "+++++++++++++++++  STARTING PRODUCTS PER PO FUNCITON   ++++++++++++++++++++++++++"
-    pos_lst_dic = db(queryBase).select(db.po.id,
-                                groupby='po_number').as_list()  # GET the number of pos in the queryBase
-    # pos_lst_dic es: [{'po.id': 1L}, {'po.id': 2L}]
-    pos_lst = []
-    productsPerPo_lst = []
-
-    # GET the po.id of e.a.
-    for i in range(len(pos_lst_dic)):
-        pos_lst.append(pos_lst_dic[i]['id'])
-    # pos_lst es: [1L, 2L]
-
-    # GET the products grouped by po
-    for i in range(len(pos_lst)):
-        poi = pos_lst[i]   # GET ea po.id from list
-        # print ("poi es: ", poi)
-        queryPos = queryBase
-        queryPos &= db.po_detail.po_id == poi
-        # print ("querypos es:", queryPos)
-        products_lst = db(queryPos).select(db.po.po_number,db.po_detail.product_id,
-                                                      db.po_detail.quantity,
-                                                      db.product.name,
-                                                      db.product.pres, db.po.customer_id).as_list()
-        productsPerPo_lst.append(products_lst)
-
-    return {'a': productsPerPo_lst, 'b':pos_lst}
 
 def productsPerSupplier(query):
     # THIS function produces a listing of products per supplier
