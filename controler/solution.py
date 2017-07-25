@@ -28,10 +28,10 @@ def ppal(queryBase):
     #htmlGenerator(po_lst,chart_lst)
 
     # FILTRA los nombres por proveeedor
-    filterSup(queryBase, 1, chart_lst)
+    pdctsFiltered=filterSup(queryBase, 1, chart_lst)
     return
 
-def filterSup(queryBase, supplierId, chart_lst):
+def filterSup(queryBase, supplierId, summaryChartLst):
     print "+++++++++++++++++  STARTING filterPerSup  ++++++++++++++++++++++++++"
     # esta funcion filtra el consolidado por proveedor
 
@@ -41,24 +41,32 @@ def filterSup(queryBase, supplierId, chart_lst):
     pdctNamesSupplier_lst_dic = db(querySupplier).select(db.product.name, orderby='product.name', groupby='product.name').as_list()
     pdctNamesSupplier_lst =[]
 
-    # CONVIERTE una lista de diccionarios en una lista simple con los nombres
+    # OBTIENE los nombres como una lista simple
     for j in range(len(pdctNamesSupplier_lst_dic)):
         pdctNamesSupplier_lst.append(pdctNamesSupplier_lst_dic[j]['name'])
-    print pdctNamesSupplier_lst
-    print chart_lst
+    print "\n", "estos son los nombres del productos para este proveedor", pdctNamesSupplier_lst
 
-    r_lst = chart_lst
-    '''
-    for i in range(len(chart_lst)):
-        for j in range(len(pdctNamesSupplier_lst)):
-            thereis = pdctNamesSupplier_lst[j] in chart_lst[i]
-            print "there is ", thereis
-            if thereis == False:
-                del r_lst[i]
+    chartPerSupplier_lst = summaryChartLst
+    print "\n", "este es el consolidado: ",chartPerSupplier_lst
 
-    print "la salida filtrada es: ", r_lst'''
+    # CREA la lista para guardar posiciones a borrar
+    position_lst=[]
 
-    return
+    # OBTIENE las posiciones de los elementos a borrar y los guarda en la lista
+    for j in range(len(chartPerSupplier_lst)):
+        exist = chartPerSupplier_lst[j][0] in pdctNamesSupplier_lst
+        if exist == False:
+            position_lst.append(j)
+
+    print "\n", "esta son las posiciones de los elementos a eliminar position_lst es: ", position_lst
+
+    # EJECUTA el filtro
+    for position in sorted(position_lst, reverse=True):
+        del chartPerSupplier_lst[position]
+    print  "este es el listado filtrado: ", chartPerSupplier_lst
+
+
+    return chartPerSupplier_lst
 
 
 def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
