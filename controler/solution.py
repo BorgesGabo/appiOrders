@@ -21,13 +21,45 @@ def ppal(queryBase):
     print "estos son los product.name sin repetir: ","\n", names_lst, "\n"
 
     # OBTIENE el consolidado total de los pedidos
-    productsPerPo_lst = chartGenerator2(queryBase, po_lst, ids_lst, names_lst)
-    print "estos son los productos por po: ","\n", productsPerPo_lst, "\n"
+    chart_lst = chartGenerator2(queryBase, po_lst, ids_lst, names_lst)
+    print "este es el consolidado: ","\n", chart_lst, "\n"
 
     # GENERA el archivo html
-    htmlGenerator(len(po_lst),productsPerPo_lst)
+    #htmlGenerator(po_lst,chart_lst)
+
+    # FILTRA los nombres por proveeedor
+    filterSup(queryBase, 1, chart_lst)
+    return
+
+def filterSup(queryBase, supplierId, chart_lst):
+    print "+++++++++++++++++  STARTING filterPerSup  ++++++++++++++++++++++++++"
+    # esta funcion filtra el consolidado por proveedor
+
+    # OBTIENE los product.name de los pedidos dentro de las fechas pero adicionalmente los filtra por proveedor
+    querySupplier = queryBase
+    querySupplier &= db.product.supplier_id == supplierId
+    pdctNamesSupplier_lst_dic = db(querySupplier).select(db.product.name, orderby='product.name', groupby='product.name').as_list()
+    pdctNamesSupplier_lst =[]
+
+    # CONVIERTE una lista de diccionarios en una lista simple con los nombres
+    for j in range(len(pdctNamesSupplier_lst_dic)):
+        pdctNamesSupplier_lst.append(pdctNamesSupplier_lst_dic[j]['name'])
+    print pdctNamesSupplier_lst
+    print chart_lst
+
+    r_lst = chart_lst
+    '''
+    for i in range(len(chart_lst)):
+        for j in range(len(pdctNamesSupplier_lst)):
+            thereis = pdctNamesSupplier_lst[j] in chart_lst[i]
+            print "there is ", thereis
+            if thereis == False:
+                del r_lst[i]
+
+    print "la salida filtrada es: ", r_lst'''
 
     return
+
 
 def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
     # esta funcion genera un arreglo de listas con el consolidado de los pedidos
@@ -101,33 +133,38 @@ def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
     print "\n"*2, "el consolidado total es: ", summaryChart_lst
     return summaryChart_lst
 
-def htmlGenerator(numberOfPos, totals_dic):
-    # esta funcion genera el cuadro consolidado de pedidos en formato html
+def htmlGenerator(po_lst, chart_lst):
+    # esta funcion convierte el consolidado de los pedidos a una tabla en html
     # INPUT:
-    #       numberOfPos: int es el numero de pedidos
-    #           chart: dic -> es el consolidado de productos de los productos
-    #                  ejemplo: {'producto_567': ['Papa criolla organica', 1500, 1500], 'producto_481': ['Acelga organica', 1000, 500, 1500], 'producto_493': ['Banano Bocadillo organico', 6, 6],....}
+    #       pos_lst: -> contiene un listado con los po.po_number entre las fechas especificadas queryBase
+    #                   ejemplo: [1111L, 1112L]
+    #       chart_lst:  -> es el consolidado de productos de los productos
+    #                  ejemplo: [['Acelga organica', 1000, 500, 1500], ['Banano Bocadillo organico', 0, 6, 6], ['Banano organico', 18, 0, 18],...]
     # OUTPUT:
-    #        archivo html de nombre ConsolidadoEssencia.html
-    #        summaryChartRows: list -> consolidado en forma de lista y con un espacio "  " en el subtotal para un producto que no tiene cantidad
-    #                   ejemplo: [['Papa criolla organica', 1500,"  ", 1500], ['Acelga organica', 1000, 500, 1500], ['Banano Bocadillo organico', 6,"  ", 6], ...]
+    #        archivo html de nombre Consolidado-Pedidos.html con una columna entre cada pedido titulada "ENTREGADO" que contiene un espacio
+
     print "+++++++++++++++++  STARTING htmlGenerator  ++++++++++++++++++++++++++"
-    header = ["producto", "1111", "ENTREGADO", "1112","ENTREGADO", "total", "ENTREGADO"] # TODO header auto
-    # INPUT el listado de los pedidos
-    # SACAR el tamano del listado anterior y meterlo por numberOfPos
-    # header = listado de pedidos
-    # header meterlo en el loop para que incluya los espacios tambien
-    consolidado_lst = totals_dic
-    print ("consolidado_lst es: ", totals_dic)
-    '''#consolidado_lst = totals_dic.values()
-    print ("consolidado_lst es: ", consolidado_lst)'''
+    header_lst = po_lst
+    header_lst.insert(0,"PRODUCTO")
+    header_lst.insert(len(po_lst), "TOTAL")
+    #header_lst = ["producto", "1111", "ENTREGADO", "1112","ENTREGADO", "total", "ENTREGADO"] # TODO header_lst auto
+
+    consolidado_lst = chart_lst
+    print ("consolidado_lst es: ", chart_lst)
+
+    for i in range(len(header_lst)):
+        if i != 0:
+            position = 2*i
+            header_lst.insert(position, "ENTREGADO")
+
+
     for  consolidado in consolidado_lst:
         for i in range(len(consolidado)):
             if i !=0:
                 position = 2*i
-                consolidado.insert(position, "espacio")
-
-    htmlcode = HTML.table(consolidado_lst, header_row=header)  # crea el codigo html de la tabla
+                consolidado.insert(position, "     ")
+                #header_lst.insert(position, "ENTREGADO")
+    htmlcode = HTML.table(consolidado_lst, header_row=header_lst)  # crea el codigo html de la tabla
     # print htmlcode                                                        # impresion de prueba codigo html de la tabla
     myText = "Este es el consolidado de la fecha"
     html = """
