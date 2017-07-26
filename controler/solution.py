@@ -81,7 +81,6 @@ def excelTables(chartPerSupplier_lst, supplierId):
         wb.save("Lista de Otros Proveedores.xlsx")
     return
 
-
 def filterSup(queryBase, supplierId, summaryChart_lst):
     print "*" * 20, "STARTING filterPerSup", "*" * 20
     # esta funcion filtra el consolidado por proveedor
@@ -375,3 +374,4 @@ def processPo():
                                db.product.pres, db.po.customer_id, orderby='po_number')
     msg = T("%s registros encontrados" % count)
     queryGen(query)
+    return dict(form=form, msg=msg, results=results)
