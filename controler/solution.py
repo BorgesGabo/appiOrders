@@ -24,14 +24,11 @@ def ppal(queryBase):
     chart_lst = chartGenerator2(queryBase, po_lst, ids_lst, names_lst)
     print "este es el consolidado: ","\n", chart_lst, "\n"
 
-    # GENERA el archivo html
-    htmlGenerator(po_lst,chart_lst)
-
     # FILTRA los nombres por proveeedor
-    pdctsFiltered=filterSup(queryBase, 1, chart_lst)
+    pdctsFiltered=filterSup(queryBase, 2, chartGenerator2(queryBase, po_lst, ids_lst, names_lst))
 
-    # TO DO hacer el filtro de 1-numero de proveedores y REPETIR
-
+     # GENERA el archivo html
+    html_lst=htmlGenerator(po_lst,chartGenerator2(queryBase, po_lst, ids_lst, names_lst))
     return
 
 # TO DO funcion que crea archivo xls y lo nombra para cada proveedor
@@ -52,7 +49,7 @@ def filterSup(queryBase, supplierId, summaryChartLst):
     print "\n", "estos son los nombres del productos para este proveedor", pdctNamesSupplier_lst
 
     chartPerSupplier_lst = summaryChartLst
-    print "\n", "este es el consolidado: ",chartPerSupplier_lst
+    print "\n", "este es el consolidado chartPerSupplier_lst: ",chartPerSupplier_lst
 
     # CREA la lista para guardar posiciones a borrar
     position_lst=[]
@@ -109,40 +106,42 @@ def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
                                                    db.product.pres, db.po.customer_id, orderby="product.name",
                                                    groupby='product.id').as_list()
 
-            print "\n","los detalles del pedido son: ", products_lst
+            print "\n","    los detalles del pedido son: ", products_lst
 
             # OBTIENE LOS product.id de los que hacen parte del pedido
             productsId_lst = db(queryPos).select(db.po_detail.product_id, groupby='po_detail.product_id').as_list()
-            print "los ids de los del pedido son: ", productsId_lst
+            print "\n", "     los ids de los del pedido son: ", productsId_lst
             # CONVIERTE la lista que contiene product.id lo demas lo elimina
             for j in range(len(productsId_lst)):
                 poProductId_lst.append(productsId_lst[j]['product_id'])
-            print "\n","estos son los ids por pedido", poProductId_lst
+            print "\n","    estos son los ids por pedido", poProductId_lst
 
             # OBTIENE los product.pres de los que hacen parte del pedido
             productsPres_lst = db(queryPos).select(db.product.pres, groupby='po_detail.product_id').as_list()
             for j in range(len(productsPres_lst)):
                 poProductPres_lst.append(productsPres_lst[j]['pres'])
-            print "\n","este es el listado de presentaciones", poProductPres_lst
+            print "\n","    este es el listado de presentaciones", poProductPres_lst
 
             # OBTIENE los po_detail.qty de los que hacen parte del pedido
             productsQty_lst = db(queryPos).select(db.po_detail.quantity, groupby='po_detail.product_id').as_list()
             for j in range(len(productsQty_lst)):
                 poProductQty_lst.append(productsQty_lst[j]['quantity'])
-            print  "\n","este es el listado de cantidades: ", poProductQty_lst
-            print "\n", "el product.id a buscar es:", pdctId_lst[i]
+            print  "\n","    este es el listado de cantidades: ", poProductQty_lst
+            print "\n", "    el product.id a buscar es:", pdctId_lst[i]
             if pdctId_lst[i] in poProductId_lst: # SI el product.id del consolidado esta en los de ese pedido...
                 position_lst = [k for k, x in enumerate(poProductId_lst) if x ==pdctId_lst[i]] # BUSQUE donde esta y devuelva la posicion como entero
                 position = position_lst[0] # CONVIERTE el resultado anterior a un entero
                 print "\n","la posicion del product.id en la lista de los ids del pedido es: ", position
                 summaryChartRow_lst.append(int(poProductQty_lst[position])*int(poProductPres_lst[position])) # OBTIENE la cantidad y presentacion, las multiplica y las agrega al consolidado
             else:
-                print "no esta"
+                print "\n", "       no esta"
                 summaryChartRow_lst.append(0) # SI el product.id no esta en ese pedido agregue un cero a la lista
             print "\n", "la lista por producto es: ", summaryChartRow_lst
         summaryChartRow_lst.append(int(sum(summaryChartRow_lst[1:]))) # TOTALIZA la cantidades por producto y lo agrega a la lista
         summaryChart_lst.append(summaryChartRow_lst) # AGREGA ese producto en el consolidado total
-    print "\n"*2, "el consolidado total es: ", summaryChart_lst
+    print "\n"*2, "el consolidado total es: summaryChart_lst ", summaryChart_lst
+    print "*"*10, "FIN DE CHART GENERATOR","*"*10
+
     return summaryChart_lst
 
 def htmlGenerator(po_lst, chart_lst):
@@ -227,8 +226,8 @@ def htmlGenerator(po_lst, chart_lst):
     f = open("consolidado-Pedidos", "w")  # crea archivo html
     f.write(html)  # Escribe en el archivo html
     f.close()  # Guarda archivo html
-
-    return
+    print "*" * 10, "FIN HTML GENERATOR", "*" * 10
+    return consolidado_lst
 
 def getPo(queryBase):
     # esta funcion obtiene un listado con todos los po.po_number consolidados
@@ -285,27 +284,6 @@ def getIds(queryBase):
         pdctId_lst.append(pdctId_lst_dic[i]['po_detail']['product_id'])
 
     return pdctId_lst
-
-def productsPerSupplier(query):
-    # THIS function produces a listing of products per supplier
-    # INPUT query: str
-    # OUTPUT {'a':productsPerSupplier, 'b':querySupplier}
-    # ------------------------------------------------------------
-
-    print "+++++++++++++++++  STARTING QUERY SUPPLIER FUNCITON   ++++++++++++++++++++++++++"
-    for i in range(0, 4):
-        if i == 0:
-            querySupplier = query
-        else:
-            querySupplier = query
-            querySupplier &= db.product.supplier_id == i
-       productsPerSupplier = db(querySupplier).select(db.po.po_number, db.po_detail.product_id,
-                                                  db.po_detail.quantity, db.product.name,
-                                                 db.product.pres, db.po.customer_id, orderby='po_number').as_list()
-        # queryPo(productsPerSupplier, querySupplier)
-        # print querySupplier
-        # print productsPerSupplier
-    return {'a':productsPerSupplier, 'b':querySupplier}
 
 def processPo():
     # this function generates a form with date types and query the db between the 2 dates
