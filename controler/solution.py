@@ -25,17 +25,69 @@ def ppal(queryBase):
     print "este es el consolidado: ","\n", chart_lst, "\n"
 
     # FILTRA los nombres por proveeedor
-    pdctsFiltered=filterSup(queryBase, 2, chartGenerator2(queryBase, po_lst, ids_lst, names_lst))
+    for i in range(1,4):
+        pdctsFiltered = filterSup(queryBase, i, chartGenerator2(queryBase, po_lst, ids_lst, names_lst))
+        excel_lst = excelTables(pdctsFiltered, i)
 
      # GENERA el archivo html
-    html_lst=htmlGenerator(po_lst,chartGenerator2(queryBase, po_lst, ids_lst, names_lst))
+    html_lst = htmlGenerator(po_lst,chartGenerator2(queryBase, po_lst, ids_lst, names_lst))
+
     return
 
-# TO DO funcion que crea archivo xls y lo nombra para cada proveedor
+def excelTables(chartPerSupplier_lst, supplierId):
+    # Esta funcion crea la tabla en excel de los productos por proveedor
+    #   INPUT:
+    #           chartPerSupplier_lst ->
+    #                   ejemplo: [['Acelga organica', 1000, 500, 1500], ['Banano Bocadillo organico', 0, 6, 6], ['Banano organico', 18, 0, 18], ['Brocoli organico', 0, 500, 500], ...]
+    # CREA el libro de excel y toma la hoja como activa
+    wb = Workbook()
+    ws = wb.active
 
-def filterSup(queryBase, supplierId, summaryChartLst):
-    print "+++++++++++++++++  STARTING filterPerSup  ++++++++++++++++++++++++++"
+    # CREA el header de la tabla en excel
+    header = ["PRODUCTO"]
+    header.append("TOTAL")
+    header.append("LBS")
+
+    data = [
+        ['Apples', 10000, 5000, 8000, 6000],
+        ['Pears', 2000, 3000, 4000, 5000],
+        ['Bananas', 6000, 6000, 6500, 6000],
+        ['Oranges', 500, 300, 200, 700],
+    ]
+    lastCell = str(len(chartPerSupplier_lst) + 1)  # Find the last row with data
+    lastCell = "C" + lastCell  # Add the column by concatenating
+    lastCell = "A1:" + lastCell  # Produce the range of cells which contains the data
+    print lastCell
+    # add column headings. NB. these must be strings
+    # AGREGA los header de la tabla Excel
+    ws.append(header)
+    for row in chartPerSupplier_lst:
+        ws.append(row)
+
+    tab = Table(displayName="Table1", ref=lastCell)
+
+    # Add a default style with striped rows and banded columns
+    style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False,
+                           showLastColumn=False, showRowStripes=True, showColumnStripes=True)
+    tab.tableStyleInfo = style
+    ws.add_table(tab)
+    if supplierId == 1:
+        wb.save("Lista de Eduardo.xlsx")
+    elif supplierId ==2:
+        wb.save("Lista de Floro.xlsx")
+    elif supplierId ==3:
+        wb.save("Lista de Otros Proveedores.xlsx")
+    return
+
+
+def filterSup(queryBase, supplierId, summaryChart_lst):
+    print "*" * 20, "STARTING filterPerSup", "*" * 20
     # esta funcion filtra el consolidado por proveedor
+    # INPUT:
+    #       queryBase: str -> es query tipo DAL web2py con el listado de los productos entre las fechas ingresadas
+    #                      ejemplo: ((((po.id = po_detail.po_id) AND (po_detail.product_id = product.id)) AND (po.date >= '2017-05-23 17:43:11')) AND (po.date <= '2017-05-26 15:16:00'))
+    #       supplierId: int -> es el product.supplier_id
+    #       summaryChart_lst: -> es el consolidado de productos para todos los pedidos
 
     # OBTIENE los product.name de los pedidos dentro de las fechas pero adicionalmente los filtra por proveedor
     querySupplier = queryBase
@@ -48,7 +100,7 @@ def filterSup(queryBase, supplierId, summaryChartLst):
         pdctNamesSupplier_lst.append(pdctNamesSupplier_lst_dic[j]['name'])
     print "\n", "estos son los nombres del productos para este proveedor", pdctNamesSupplier_lst
 
-    chartPerSupplier_lst = summaryChartLst
+    chartPerSupplier_lst = summaryChart_lst
     print "\n", "este es el consolidado chartPerSupplier_lst: ",chartPerSupplier_lst
 
     # CREA la lista para guardar posiciones a borrar
@@ -66,7 +118,7 @@ def filterSup(queryBase, supplierId, summaryChartLst):
     for position in sorted(position_lst, reverse=True):
         del chartPerSupplier_lst[position]
     print  "este es el listado filtrado: ", chartPerSupplier_lst
-
+    print "*" * 20, "ENDING filterPerSup", "*" * 20
 
     return chartPerSupplier_lst
 
