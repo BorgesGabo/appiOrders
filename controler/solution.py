@@ -27,9 +27,11 @@ def ppal(queryBase):
     # FILTRA los nombres por proveeedor
     for i in range(1,4):
         pdctsFiltered = filterSup(queryBase, i, chartGenerator2(queryBase, po_lst, ids_lst, names_lst))
-        excel_lst = excelTables(pdctsFiltered, i)
+        print "lista de FILTRADO", pdctsFiltered
+        if len(pdctsFiltered)!=0:
+            excel_lst = excelTables(pdctsFiltered, i)
 
-     # GENERA el archivo html
+    # GENERA el archivo html
     html_lst = htmlGenerator(po_lst,chartGenerator2(queryBase, po_lst, ids_lst, names_lst))
 
     return
