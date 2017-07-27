@@ -1,3 +1,19 @@
+# -*- coding: utf-8 -*-
+# this file is released under public domain and you can use without limitations
+
+# -------------------------------------------------------------------------
+# This is a sample controller
+# - index is the default action of any application
+# - user is required for authentication and authorization
+# - download is for downloading files uploaded in the db (does streaming)
+# -------------------------------------------------------------------------
+import datetime
+import HTML
+import openpyxl
+
+from openpyxl import Workbook
+from openpyxl.worksheet.table import Table, TableStyleInfo
+
 def ppal(queryBase):
     # esta funcion controla el algoritmo para sacar todos los consolidados
     # en otras palabras este es el nucleo del programa
