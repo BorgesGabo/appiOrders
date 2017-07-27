@@ -14,8 +14,368 @@ import openpyxl
 from openpyxl import Workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
-from prettytable import PrettyTable
-from prettytable import ALL
+def ppal(queryBase):
+    # esta funcion controla el algoritmo para sacar todos los consolidados
+    # en otras palabras este es el nucleo del programa
+    # --------------------------------------
+    # Se llama consolidado a un listado que contiene la variable mencionada de todos los productos que fueron comprados o pedidos entre
+    # del rango de fechas. El listado no contiene repeticiones
+    # ---------------------------------------
+    print "\n" * 4
+    print "*****                    NUEVO CALCULO                    *****"
+    # OBTIENE el listado de las pos
+    po_lst = getPo(queryBase)
+    print "estas son las pos: ", "\n", po_lst, "\n"
+
+    # OBTIENE el consolidado de los po.ids_lst alfabeticamente por nombre
+    ids_lst = getIds(queryBase)
+    # ids_dic = chartGenerator(ids)
+    print "esto son los product.id sin repetir: ", "\n", ids_lst, "\n"
+
+    # OBTIENE el consolidado de los product.names alfabeticamente
+    names_lst = getNames(queryBase)
+    print "estos son los product.name sin repetir: ", "\n", names_lst, "\n"
+
+    # OBTIENE el consolidado total de los pedidos
+    #chart_lst = chartGenerator2(queryBase, po_lst, ids_lst, names_lst)
+    #print "este es el consolidado: ", "\n", chart_lst, "\n"
+
+    # FILTRA los nombres por proveeedor
+    for i in range(1, 4):
+        pdctsFiltered = filterSup(queryBase, i, chartGenerator2(queryBase, po_lst, ids_lst, names_lst))
+        print "lista de FILTRADO", pdctsFiltered
+        if len(pdctsFiltered) != 0:
+            excel_lst = excelTables(pdctsFiltered, i)  # CREA los archivos de excel
+
+    # GENERA el archivo html
+    html_lst = htmlGenerator(po_lst, chartGenerator2(queryBase, po_lst, ids_lst, names_lst))
+
+    return
+
+
+def excelTables(chartPerSupplier_lst, supplierId):
+    # Esta funcion crea la tabla en excel de los productos por proveedor
+    #   INPUT:
+    #           chartPerSupplier_lst -> Es el consolidado de todos los pedidos dentro del rango
+    #                   ejemplo: [['Acelga organica', 1000, 500, 1500], ['Banano Bocadillo organico', 0, 6, 6], ['Banano organico', 18, 0, 18], ['Brocoli organico', 0, 500, 500], ...]
+    #           supplierId -> int: representa el customer.id
+    # OUTPUT:
+    #           3 archivos en excel: "Lista de floro.xlsx", "Lista de eduardo.xlsx", "Lista de otros.xlsx"
+
+
+    # CREA el libro de excel y toma la hoja como activa
+    wb = Workbook()
+    ws = wb.active
+
+    # CREA el header de la tabla en excel
+    header = ["PRODUCTO"]
+    header.append("TOTAL")
+    header.append("LBS")
+    # ESTA lista es para hacer pruebas, se utiliza para reemplazar charPerSupplier_lst y verificar que funciona correctamente el codigo de aqui hasta el final de la funcion
+
+    data = [
+        ['Apples', 10000, 5000, 8000, 6000],
+        ['Pears', 2000, 3000, 4000, 5000],
+        ['Bananas', 6000, 6000, 6500, 6000],
+        ['Oranges', 500, 300, 200, 700],
+    ]
+    lastCell = str(len(chartPerSupplier_lst) + 1)  # Find the last row with data
+    lastCell = "C" + lastCell  # Add the column by concatenating
+    lastCell = "A1:" + lastCell  # Produce the range of cells which contains the data
+    print lastCell
+    # add column headings. NB. these must be strings
+    # AGREGA los header de la tabla Excel
+    ws.append(header)
+    for row in chartPerSupplier_lst: # REPITA para cada sublista del consolidado
+        del row[1:len(row)-1]   # ELIMINE lo que no sea nombre y el totol
+        ws.append(row)          # AGREGUE al libro de excel
+
+    tab = Table(displayName="Table1", ref=lastCell)
+
+    # Add a default style with striped rows and banded columns
+    style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False,
+                           showLastColumn=False, showRowStripes=True, showColumnStripes=True)
+    tab.tableStyleInfo = style
+    ws.add_table(tab)
+    if supplierId == 1:
+        wb.save("Lista de Eduardo.xlsx")
+    elif supplierId == 2:
+        wb.save("Lista de Floro.xlsx")
+    elif supplierId == 3:
+        wb.save("Lista de Otros Proveedores.xlsx")
+    return
+
+
+def filterSup(queryBase, supplierId, summaryChart_lst):
+    print "*" * 20, "STARTING filterPerSup", "*" * 20
+    # esta funcion filtra el consolidado por proveedor
+    # INPUT:
+    #       queryBase: str -> es query tipo DAL web2py con el listado de los productos entre las fechas ingresadas
+    #                      ejemplo: ((((po.id = po_detail.po_id) AND (po_detail.product_id = product.id)) AND (po.date >= '2017-05-23 17:43:11')) AND (po.date <= '2017-05-26 15:16:00'))
+    #       supplierId: int -> es el product.supplier_id
+    #       summaryChart_lst: -> es el consolidado de productos para todos los pedidos
+    # OUTPUT:
+    #       chartPerSupplier_lst -> tiene la misma estructura del summaryChart_lst que es el consolidado de pedidos
+    #                               la unica diferencia es que aparecen los productos por proveedor elimimando los de los demas
+    #                           ejemplo: [['Acelga organica', 1000, 500, 1500], ['Banano Bocadillo organico', 0, 6, 6], ['Banano organico', 18, 0, 18],...]
+
+    # OBTIENE los product.name de los pedidos dentro de las fechas pero adicionalmente los filtra por proveedor
+    querySupplier = queryBase
+    querySupplier &= db.product.supplier_id == supplierId
+    pdctNamesSupplier_lst_dic = db(querySupplier).select(db.product.name, orderby='product.name',
+                                                         groupby='product.name').as_list()
+    pdctNamesSupplier_lst = []
+
+    # OBTIENE los nombres como una lista simple
+    for j in range(len(pdctNamesSupplier_lst_dic)):
+        pdctNamesSupplier_lst.append(pdctNamesSupplier_lst_dic[j]['name'])
+    print "\n", "estos son los nombres del productos para este proveedor", pdctNamesSupplier_lst
+
+    chartPerSupplier_lst = summaryChart_lst
+    print "\n", "este es el consolidado chartPerSupplier_lst: ", chartPerSupplier_lst
+
+    # CREA la lista para guardar posiciones a borrar
+    position_lst = []
+
+    # OBTIENE las posiciones de los elementos a borrar y los guarda en la lista
+    for j in range(len(chartPerSupplier_lst)):
+        exist = chartPerSupplier_lst[j][0] in pdctNamesSupplier_lst
+        if exist == False:
+            position_lst.append(j)
+
+    print "\n", "esta son las posiciones de los elementos a eliminar position_lst es: ", position_lst
+
+    # EJECUTA el filtro
+    for position in sorted(position_lst, reverse=True):
+        del chartPerSupplier_lst[position]
+    print  "este es el listado filtrado: ", chartPerSupplier_lst
+    print "*" * 20, "ENDING filterPerSup", "*" * 20
+
+    return chartPerSupplier_lst
+
+
+def chartGenerator2(queryBase, poNumber_lst, pdctId_lst, pdctNames_lst):
+    # esta funcion genera un arreglo de listas con el consolidado de los pedidos
+    # INPUT:
+    #       queryBase: str -> es query tipo DAL web2py con el listado de los productos entre las fechas ingresadas
+    #                      ejemplo: ((((po.id = po_detail.po_id) AND (po_detail.product_id = product.id)) AND (po.date >= '2017-05-23 17:43:11')) AND (po.date <= '2017-05-26 15:16:00'))
+    #       poNumber_lst: -> contiene un listado con los po.po_number entre las fechas especificadas queryBase
+    #                        ejemplo: [1111L, 1112L]
+    #       pdctNames_lst -> contiene el listado con los product.name entre las fechas especificadas queryBase
+    #                        ejemplo: ['Acelga organica', 'Banano Bocadillo organico', 'Banano organico', 'Brocoli organico', ...]
+    #       pdctId_lst  ->   contiene los product.id entre las fechas especificadas por queryBase
+    #                        ejemplo: [481L, 493L, 494L, 497L, 542L, 567L, 583L, 590L]
+    # OUTPUT:
+    #       summaryChart_lst -> es un listado de listas que contiene el consolidado de todos los pedidos entreg las fechas del queryBase con nombre de producto y total
+    #                        ejemplo: [['Acelga organica', 1000, 500, 1500], ['Banano Bocadillo organico', 0, 6, 6], ['Banano organico', 18, 0, 18],...]
+
+
+    # CREA la lista donde guarda el consolidado como lista de sublistas
+    summaryChart_lst = []
+
+    for i in range(len(pdctId_lst)):  # REPETIR para cada product.id de la lista
+        # CREA la lista donde guardara todos los datos del consolidado o reinicia la lista con cada pdctIds_lst
+        summaryChartRow_lst = []  # esta lista guardara el product.name, qty*pres y totales
+        summaryChartRow_lst.append(pdctNames_lst[i])  # OBTIENE el nombre y lo ingresa en summaryChartRow_lst
+
+        for poNumber in poNumber_lst:  # REPETIR para cada po.po_number de la lista
+            poProductId_lst = []
+            poProductPres_lst = []
+            poProductQty_lst = []
+            queryPos = queryBase
+            queryPos &= db.po.po_number == poNumber  # CONSULTE el listado de productos para el po.poNumber del loop
+            products_lst = db(queryPos).select(db.po.po_number, db.po_detail.product_id,
+                                               db.po_detail.quantity,
+                                               db.product.name,
+                                               db.product.pres, db.po.customer_id, orderby="product.name",
+                                               groupby='product.id').as_list()
+
+            print "\n", "    los detalles del pedido son: ", products_lst
+
+            # OBTIENE LOS product.id de los que hacen parte del pedido
+            productsId_lst = db(queryPos).select(db.po_detail.product_id, groupby='po_detail.product_id').as_list()
+            print "\n", "     los ids de los del pedido son: ", productsId_lst
+            # CONVIERTE la lista que contiene product.id lo demas lo elimina
+            for j in range(len(productsId_lst)):
+                poProductId_lst.append(productsId_lst[j]['product_id'])
+            print "\n", "    estos son los ids por pedido", poProductId_lst
+
+            # OBTIENE los product.pres de los que hacen parte del pedido
+            productsPres_lst = db(queryPos).select(db.product.pres, groupby='po_detail.product_id').as_list()
+            for j in range(len(productsPres_lst)):
+                poProductPres_lst.append(productsPres_lst[j]['pres'])
+            print "\n", "    este es el listado de presentaciones", poProductPres_lst
+
+            # OBTIENE los po_detail.qty de los que hacen parte del pedido
+            productsQty_lst = db(queryPos).select(db.po_detail.quantity, groupby='po_detail.product_id').as_list()
+            for j in range(len(productsQty_lst)):
+                poProductQty_lst.append(productsQty_lst[j]['quantity'])
+            print  "\n", "    este es el listado de cantidades: ", poProductQty_lst
+            print "\n", "    el product.id a buscar es:", pdctId_lst[i]
+            if pdctId_lst[i] in poProductId_lst:  # SI el product.id del consolidado esta en los de ese pedido...
+                position_lst = [k for k, x in enumerate(poProductId_lst) if
+                                x == pdctId_lst[i]]  # BUSQUE donde esta y devuelva la posicion como entero
+                position = position_lst[0]  # CONVIERTE el resultado anterior a un entero
+                print "\n", "la posicion del product.id en la lista de los ids del pedido es: ", position
+                summaryChartRow_lst.append(int(poProductQty_lst[position]) * int(poProductPres_lst[
+                                                                                     position]))  # OBTIENE la cantidad y presentacion, las multiplica y las agrega al consolidado
+            else:
+                print "\n", "       no esta"
+                summaryChartRow_lst.append(0)  # SI el product.id no esta en ese pedido agregue un cero a la lista
+            print "\n", "la lista por producto es: ", summaryChartRow_lst
+        summaryChartRow_lst.append(
+            int(sum(summaryChartRow_lst[1:])))  # TOTALIZA la cantidades por producto y lo agrega a la lista
+        summaryChart_lst.append(summaryChartRow_lst)  # AGREGA ese producto en el consolidado total
+    print "\n" * 2, "el consolidado total es: summaryChart_lst ", summaryChart_lst
+    print "*" * 10, "FIN DE CHART GENERATOR", "*" * 10
+
+    return summaryChart_lst
+
+
+def htmlGenerator(po_lst, chart_lst):
+    # esta funcion convierte el consolidado de los pedidos a una tabla en html
+    # INPUT:
+    #       pos_lst: -> contiene un listado con los po.po_number entre las fechas especificadas queryBase
+    #                   ejemplo: [1111L, 1112L]
+    #       chart_lst:  -> es el consolidado de productos de los productos
+    #                  ejemplo: [['Acelga organica', 1000, 500, 1500], ['Banano Bocadillo organico', 0, 6, 6], ['Banano organico', 18, 0, 18],...]
+    # OUTPUT:
+    #        archivo html de nombre Consolidado-Pedidos.html con una columna entre cada pedido titulada "ENTREGADO" que contiene un espacio
+
+    print "+++++++++++++++++  STARTING htmlGenerator  ++++++++++++++++++++++++++"
+    header_lst = po_lst
+    header_lst.insert(0, "PRODUCTO")
+    header_lst.insert(len(po_lst), "TOTAL")
+    # header_lst = ["producto", "1111", "ENTREGADO", "1112","ENTREGADO", "total", "ENTREGADO"] # TODO header_lst auto
+
+    consolidado_lst = chart_lst
+    print ("consolidado_lst es: ", chart_lst)
+
+    for i in range(len(header_lst)):
+        if i != 0:
+            position = 2 * i
+            header_lst.insert(position, "ENTREGADO")
+
+    for consolidado in consolidado_lst:
+        for i in range(len(consolidado)):
+            if i != 0:
+                position = 2 * i
+                consolidado.insert(position, "     ")
+                # header_lst.insert(position, "ENTREGADO")
+    htmlcode = HTML.table(consolidado_lst, header_row=header_lst)  # crea el codigo html de la tabla
+    # print htmlcode                                                        # impresion de prueba codigo html de la tabla
+    myText = "Este es el consolidado de la fecha"
+    html = """
+            <html> 
+                <head>
+                    <title>Tabla consolidado de los pedidos a procesar</title>
+                    <style type="text/css">
+                        /**/
+                        h2 {font-family:Helvetica; color: #545454}
+                        /* Changes the font family */
+                        table {font-family:Helvetica;}
+
+                        /* Make cells a bit taller and set border color */
+                        td, th { border: 1px solid #696969; height: 30px; text-align: left;}
+
+                        th {font-size: small; /*font size for header row*/
+                        font-weight: bold; /* Make sure they're bold */
+                        color:#696969; /*font color*/
+
+        }
+
+                        /* Changes the background color of every odd row to light gray */
+                        /*table th:nth-child(1) { font-weight: bold}*/
+
+                        /* Changes the background color of every odd row to light gray */
+                        /*table tr:nth-of-type(odd) {  background-color: #dbdbdb;}*/
+
+                        /* Changes the background color of every odd column to light gray */
+                        table td:nth-of-type(even) {  background-color: #dbdbdb;}
+
+                        /* Changes the weight of each td cell within each odd row to bold */
+                        table tr:nth-of-type(odd) td {  font-weight: bold;}
+
+                        /* Collapses table borders to make the table appear continuous */
+                        table {  border-collapse: collapse;}
+                        td:not(:first-child) {width:80px} /*all columns except the first*/
+
+
+                    </style>
+                <head>
+                <body>                 
+                    <h2>%s</h2>
+                    Aqui va texto adicional
+                    <strong> %s </strong>
+                <body>
+            <html>
+            """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
+    f = open("consolidado-Pedidos", "w")  # crea archivo html
+    f.write(html)  # Escribe en el archivo html
+    f.close()  # Guarda archivo html
+    print "*" * 10, "FIN HTML GENERATOR", "*" * 10
+    return consolidado_lst
+
+
+def getPo(queryBase):
+    # esta funcion obtiene un listado con todos los po.po_number consolidados
+    # INPUT:
+    #       queryBase str -> es query tipo DAL web2py con el listado de los productos entre las fechas ingresadas
+    #                      ejemplo: ((((po.id = po_detail.po_id) AND (po_detail.product_id = product.id)) AND (po.date >= '2017-05-23 17:43:11')) AND (po.date <= '2017-05-26 15:16:00'))
+    # OUTPUT pdctName_lst -> es la lista con str que product.name
+    #                       ejemplo: [1111L, 1112L]
+
+    print "+++++++++++++++++  STARTING GET PO NUMBER FUNCTION   ++++++++++++++++++++++++++"
+    poNumber_lst_dic = db(queryBase).select(db.po.po_number, groupby='po_number').as_list()
+    poNumber_lst = []
+    for poNumber in range(len(poNumber_lst_dic)):
+        poNumber_lst.append(poNumber_lst_dic[poNumber]['po_number'])
+
+    return poNumber_lst
+
+
+def getNames(queryBase):
+    # esta funcion obtiene el listado de todos los nombres de los productos solicitados de forma consolidada y alfabeticamente
+    # INPUT:
+    #       queryBase str -> es query tipo DAL web2py con el listado de los productos entre las fechas ingresadas
+    #                      ejemplo: ((((po.id = po_detail.po_id) AND (po_detail.product_id = product.id)) AND (po.date >= '2017-05-23 17:43:11')) AND (po.date <= '2017-05-26 15:16:00'))
+    # OUTPUT pdctName_lst -> es la lista con str que product.name
+    #                       ejemplo: ['Acelga organica', 'Banano Bocadillo organico', 'Banano organico', 'Brocoli organico', ...]
+
+    print "+++++++++++++++++  STARTING GET NAMES FUNCTION   ++++++++++++++++++++++++++"
+    # CONSULTA  para tener un listado consolidado de product.name y product.id solicitados y en orden alfabetico
+    pdctNames_lst_dic = db(queryBase).select(db.po_detail.product_id, db.product.name, orderby='product.name',
+                                             groupby='product.id').as_list()
+    # CREA una lista que albergara todos los nombres de la conulta
+    pdctNames_lst = []
+
+    # OBTIENE los product.name desechando lo demas
+    for i in range(len(pdctNames_lst_dic)):
+        pdctNames_lst.append(pdctNames_lst_dic[i]['product']['name'])
+
+    return pdctNames_lst
+
+
+def getIds(queryBase):
+    # esta funcion obtiene una lista de todos los product.id solicitados consolidados y en orden alfabetico por nombre de producto
+    # INPUT:
+    #       queryBase str -> es query tipo DAL web2py con el listado de los productos entre las fechas ingresadas
+    #                      ejemplo: ((((po.id = po_detail.po_id) AND (po_detail.product_id = product.id)) AND (po.date >= '2017-05-23 17:43:11')) AND (po.date <= '2017-05-26 15:16:00'))
+    # OUTPUT: pdctId_lst -> es una lista con int que contiene los product.id
+    #                       ejemplo: [481L, 493L, 494L, 497L, 542L, 567L, 583L, 590L]
+
+    print "+++++++++++++++++  STARTING GET IDS FUNCTION  ++++++++++++++++++++++++++"
+    # CONSULTA para obtener una listado ordenado de los productos solicitados sin repeticiones
+    pdctId_lst_dic = db(queryBase).select(db.po_detail.product_id, db.product.name, orderby='product.name',
+                                          groupby='product.id').as_list()
+    # CREA la lista que contendra todos los ids de la consulta
+    pdctId_lst = []
+
+    # OBTIENE todos los ids de la consulta desechando lo demas
+    for i in range(len(pdctId_lst_dic)):
+        pdctId_lst.append(pdctId_lst_dic[i]['po_detail']['product_id'])
+
+    return pdctId_lst
 
 
 def processPo():
@@ -23,13 +383,18 @@ def processPo():
     # this function is an extract from http://brunorocha.org/python/web2py/search-form-with-web2py.html
     # default values to keep the form when submitted
     # if you do not want defaults set all below to None
+    now = datetime.datetime.now()
+    print "\n", "now is: ", now
     date_initial_default = \
-        datetime.datetime.strptime(request.vars.date_initial, "%Y-%m-%d %H:%M:%S") \
+        datetime.datetime.strptime(request.vars.date_initial, "%d/%m/%Y %H:%M:%S") \
             if request.vars.date_inicial else None
     date_final_default = \
-        datetime.datetime.strptime(request.vars.date_final, "%Y-%m-%d %H:%M:%S") \
+        datetime.datetime.strptime(request.vars.date_final, "%d/%m/%Y %H:%M:%S") \
             if request.vars.date_final else None
+    print "\n", "fecha inicial", date_initial_default
+    print "\n", "fecha final", date_final_default
     # The search form created with .factory
+
     form = SQLFORM.factory(
         Field("date_initial", "datetime", default=date_initial_default),
         Field("date_final", "datetime", default=date_final_default),
@@ -39,8 +404,12 @@ def processPo():
     # The base query to fetch all orders of db.po, db.po_details, db.product
     query = db.po.id == db.po_detail.po_id
     query &= db.po_detail.product_id == db.product.id
+    query &= db.po.date >= now
+    query &= db.po.date <= now
     # testing if the form was accepted
     if form.process().accepted:
+        query = db.po.id == db.po_detail.po_id
+        query &= db.po_detail.product_id == db.product.id
         # gathering form submitted values
         date_initial = form.vars.date_initial
         date_final = form.vars.date_final
@@ -53,520 +422,11 @@ def processPo():
     results = db(query).select(db.po.po_number, db.po.date, db.po_detail.product_id, db.po_detail.quantity,
                                db.product.pres, db.po.customer_id, orderby='po_number')
     msg = T("%s registros encontrados" % count)
-    queryGen(query)
-    return dict(form=form, msg=msg, results=results)
+    ppal(query)
 
+    return dict(form=form, msg=msg, results=results, query=query)
 
-def queryGen(query):
-    # **** THIS FUNCTION GENERATES GETS THE PRODUCTS PER PURCHASE ORDER***
-    # INPUT  query:str
-    # OUTPUT selectedOrders_lst , numberOfCharts: int, numberOfPos:int
-
-
-    pos_lst = []
-    numberOfCharts = 0
-
-    pos_lst = db(query).select(db.po.po_number,
-                               groupby='po_number').as_list()  # GET the number of pos in the range of dates
-    for i in range(len(selectedOrders_lst)):
-
-
-    # this function gets the main query (products, pos, pos_detail) between two dates
-    # and generates the necessary queries to produce the summaryChartGen per supplier
-    for i in range(0, 4):
-        if i == 0:
-            queryBase = query
-        else:
-            queryBase = query
-            queryBase &= db.product.supplier_id == i
-        selectedOrders_lst = db(queryBase).select(db.po.po_number, db.po.date, db.po_detail.product_id,
-                                                  db.po_detail.quantity, db.product.name,
-                                                  db.product.pres, db.po.customer_id, orderby='po_number').as_list()
-        if len(selectedOrders_lst) != 0:
-            numberOfCharts += 1
-            supplierNumber = i
-            summaryChartGen(selectedOrders_lst, numberOfCharts,
-                            supplierNumber, pos_lst)  # CALL the function to generate summary list
-            # print ("el numero de cuadros: ", numberOfCharts)   #enable to check
-            # print ("i es: ", i)
-            # print selectedOrders_lst
-            # print ("longitud de la query es: ", len(selectedOrders_lst))
-    return
-
-
-def summaryChartGen(selectedOrders_lst, numberOfCharts, supplierNumber, pos_lst):
-    # **** THIS FUNCTION GENERATES the base lists to render html and xls files ***
-    # INPUT  selectedOrders_lst, numberOfCharts:int, supplierNumber:int, numberOfPos:int
-    # OUTPUT summaryChart_lst, supplierNumber:int
-
-
-    subtotal_lst = []
-    summaryChart_lst = []
-
-    for k in range(len(pos_lst)): # loop over purchase orders list
-        po_number = pos_lst[k]['po_number']
-
-
-    for j in range(len(selectedOrders_lst)):  # loop over e.a. product
-        del subtotal_lst[:]  # empty the list
-        for i in range(numberOfPos):  # loop over e.a. purchase order po
-            #subtotalItem = selectedOrders_lst[j]['product']['pres'] * selectedOrders_lst[j]['po_detail']['quantity']
-            # GET pres and quantity per purchase order and multiply them
-            subtotalItem = selectedOrders_lst[i]['product']['pres'] * selectedOrders_lst[i]['po_detail']['quantity']
-
-            # APPEND it to subtotal_lst
-            subtotal_lst.append(subtotalItem)
-            print ("the list is: ", subtotal_lst)
-        subtotal = sum(subtotal_lst)
-        print ("the total is: ", subtotal)
-    return
-
-
-def summaryChart(query):
-    # Esta corre metiendo el siguiente codigo c:\Python27\python.exe c:\web2py\web2py.py -S EssenciaAPI24/default/ABCD
-    b_lst = []  # crea lista de b con los subtotales
-    c_lst = []  # crea lista de c contiene los totales por producto
-    qty_lst = []  # crea lista de cantidades
-    pres_lst = []  # crea lista de presentaciones
-    # **************************************QUERY BASE **************************************
-    # define el query base -> DAL > query
-    '''query = db.po.id==db.po_detail.po_id
-    query &= db.po_detail.product_id==db.product.id
-    query &= db.po.po_number<2432'''  # quitar comillas si quiere probar desde la linea de comandos
-
-    orders_query_lst = db(query).select(db.po.id, db.po.po_number,
-                                        groupby='po.po_number').as_list()  # obtiene id de los pedidos del query y lo convierte en una lista
-
-    # obtiene los productos que son de floro
-    query_floro = query  # modifica la query para sacar los productos de proveedor floriberto
-    query_floro &= db.product.supplier_id == 2
-    floro_product_lst = db(query_floro).select(db.product.id, db.product.name,
-                                               groupby='product.name').as_list()
-
-    # obtiene los productos que son de eduardo
-    query_eduardo = query  # modifica la query para sacar los productos de proveedor floriberto
-    query_eduardo &= db.product.supplier_id == 1
-    eduardo_product_lst = db(query_eduardo).select(db.product.id, db.product.name,
-                                                   groupby='product.name').as_list()
-
-    n = len(orders_query_lst)  # obtiene el numero de pedidos de query
-    d_lst = [str(x['po_number']) + '|Recibido' for x in
-             orders_query_lst]  # obtiene las referencias de los pedidos del query
-    # print orders_query_lst                                                                 #impresion de prueba
-    print '\n'
-    # print d_lst                                                                            #impresion de prueba
-
-    # ***************************************QUERY A,B *****************************************
-    a_product_id_lst = db(query).select(db.product.id, db.product.name,
-                                        groupby='product.name').as_list()  # obtiene id, nombre productos query sin repetir
-    for i in range(len(a_product_id_lst)):  # iterando sobre A: a_products_lst
-        query_a = query
-        query_a &= db.product.id == a_product_id_lst[i]['id']
-        for j in range(n):  # iterando sobre orders_query_lst
-            query_b = query_a
-            query_b &= db.po.id == orders_query_lst[j]['id']
-            # print query_b                                               # impresion de prueba
-            bj_lst = db(query_b).select(db.po_detail.quantity, orderby='po.po_number',
-                                        groupby='po.po_number').as_list()  # obtiene cantidad
-            qtyj_lst = db(query_b).select(db.po_detail.quantity, orderby='po.po_number',
-                                          groupby='po.po_number').as_list()  # obtiene cantidad
-            presj_lst = db(query_b).select(db.product.pres, orderby='po.po_number',
-                                           groupby='po.po_number').as_list()  # obtiene pres
-            if len(bj_lst) == 0:  # si el pedido no tiene este producto ponga 0
-                bj_lst = 0
-                b_lst.append(0)
-            else:
-                b_lst.append(int(bj_lst[0]['quantity']))  # de lo contrario ponga el valor de bj_lst
-
-            if len(qtyj_lst) == 0:  # si no hay cantidad en ese pedido ponga un cero
-                qtyj_lst = 0
-                presj_lst = 0  # ponga un cero en la presentacion
-                qty_lst.append(0)  # ingreselo en la lista de cantidad
-                pres_lst.append(0)  # ingreselo en la lista de presentacion
-            else:  # en caso contrario obtenga los valores de la consultas
-                qty_lst.append(int(qtyj_lst[0]['quantity']))  # obtiene el numero de cantidad
-                pres_lst.append(int(presj_lst[0]['pres']))  # obtiene el numero de la presentacion del producto
-    # print qty_lst                                                       #impresion de prueba
-    # print pres_lst                                                      #impresion de prueba
-    z_lst = []
-    z_lst = [qty_lst * pres_lst for qty_lst, pres_lst in
-             zip(qty_lst, pres_lst)]  # calcula pres*qty para cada uno de los elementos de la lista
-    print ("z_lst es: ", z_lst)
-    # print ("query_orders_lst is: " ,orders_query_lst)            #impresion de prueba
-    # print (str('j is:'), j)                                     #impresion de prueba
-    # print (str('bj_lst is:'), bj_lst)                           #impresion de prueba
-    # print (str('b_lst is:'), b_lst)                             #impresion de prueba
-    # *************************************LLAMA LA FUNCION QUE IMPRIME HTML****************************
-    htmlTable(n, a_product_id_lst, orders_query_lst, z_lst)
-    # *************************************LLAMA LA FUNCION QUE IMPRIME HTML FLORO****************************
-    htmlFloroTable(n, floro_product_lst, orders_query_lst, z_lst)
-    # *************************************LLAMA LA FUNCION QUE IMPRIME HTML FLORO****************************
-    htmlEduardoTable(n, eduardo_product_lst, orders_query_lst, z_lst)
-
-    # ************************************* IMPRIME TABLA RESUMEN **************************************
-    a_product_name_lst = db(query).select(db.product.name,
-                                          groupby='product.name').as_list()  # obtiene lista de nombres productos no repetidos en rango
-    field_names_lst = d_lst  # crea una lista con todos los numeros del pedido dentro del rango
-    field_names_lst.insert(0, "Producto")  # agrega al inicio de la lista el titulo producto
-    field_names_lst.insert(len(field_names_lst), "Total")  # Adiciona al final de la lista el titulo total
-    summary_table = PrettyTable(field_names_lst)  # crea la tabla resumen con los titulos de cada columna
-    total_lst = []
-    for y in range(0, len(a_product_id_lst)):
-        begining_slice = y * n  # definicion del inicio del intervalo de corte de la lista
-        end_slice = begining_slice + n  # definicion del fin del intervalo de corte de la lista
-        row_summary_lst = z_lst[
-                          begining_slice:end_slice]  # Toma los totales entre el incio y fin del intervalo sin tocar el fin
-        # si desea solo las cantidades del pedido sin multiplicar por los pesos usar b_lst por Z_lst
-        total = sum(row_summary_lst)  # suma las cantidades de todos los pedidos del rango
-        row_summary_lst.insert(0, a_product_name_lst[y]['name'])  # agrega el nombre al inicio de la lista
-        row_summary_lst.insert(len(row_summary_lst), total)  # agrega el total al final de la lista
-        summary_table.add_row(row_summary_lst)  # agrega filas a la tabla
-        summary_table.align = 'l'
-        # summary_table.align['Producto']='l'                 # alinea la a la izquierda la primera columna
-        summary_table.align['Total'] = 'r'  # alinea a la derecha la ultima columna
-    print summary_table  # imprime la tabla resumen
-    with open('consolidado.txt', 'w') as w:  # escribe la tabla en un archivo txt
-        w.write(str('ESTE ES EL CONSOLIDADO DE LOS SIGUIENTES PEDIDOS:'))
-        w.write('\n')
-        w.write(str(summary_table))
-    return
-
-
-def htmlTable(n, a_product_id_lst, orders_query_lst, z_lst):
-    # *********************************************** HTML
-    # esta funcion crea la tabla html
-    # crea la lista de los productos de Floro
-
-    # 0. obtiene el nombre de los pedidos para el headerRow
-    header = ["PRODUCTO"]
-    for x in orders_query_lst:
-        header.append(str(x['po_number']))
-        header.append("ENTREGADO ")
-    header.append("TOTAL")
-    header.append("ENTREGADO")
-    # print header
-    # 1. obtiene a_lst iterando sobre a_product_id_lst
-    a_lst = []
-    # print a_product_id_lst
-    # print len(a_product_id_lst)
-    for x in a_product_id_lst:
-        a_lst.append(str(x['name']))
-        # print x['name']
-    print ("a_lst es: ", a_lst)
-    print ("n el numero de pedidos es: ", n)
-    print ("tamano de z es: ", len(z_lst))
-    print ("tamano de a es: ", len(a_lst))
-
-    # 2. crea una lista de listas
-    headerRow = []
-    summaryCharRows = []
-    table = []
-
-    for x in range(len(a_lst)):  # iterando sobre los productos
-        if x == 0:
-            inicio = 0
-            fin = 0 + n
-        else:
-            inicio = x * n
-            fin = inicio + n
-
-        print ("inicio ", inicio)
-        print ("fin es: ", fin)
-        summaryCharRows = []
-        summaryCharRows.append(a_lst[x])
-        for y in range(inicio, fin):
-            summaryCharRows.append(z_lst[y])
-            summaryCharRows.append("        ")
-
-        summaryCharRows.append(sum(z_lst[inicio:fin]))
-        summaryCharRows.append("        ")
-        table.append(summaryCharRows)
-        # print ("table is:" , table)                                        #imprime la tabla como una lista de listas
-
-    # 3. crea el archivo html
-
-    htmlcode = HTML.table(table, header_row=header)  # crea el codigo html de la tabla
-    # print htmlcode                                                        # impresion de prueba codigo html de la tabla
-    myText = "Este es el consolidado de la fecha"
-    html = """
-    <html> 
-        <head>
-            <title>Tabla consolidado de los pedidos a procesar</title>
-            <style type="text/css">
-                /**/
-                h2 {font-family:Helvetica; color: #545454}
-                /* Changes the font family */
-                table {font-family:Helvetica;}
-
-                /* Make cells a bit taller and set border color */
-                td, th { border: 1px solid #696969; height: 30px; text-align: left;}
-
-                th {font-size: small; /*font size for header row*/
-                font-weight: bold; /* Make sure they're bold */
-                color:#696969; /*font color*/
-
-}
-
-                /* Changes the background color of every odd row to light gray */
-                /*table th:nth-child(1) { font-weight: bold}*/
-
-                /* Changes the background color of every odd row to light gray */
-                /*table tr:nth-of-type(odd) {  background-color: #dbdbdb;}*/
-
-                /* Changes the background color of every odd column to light gray */
-                table td:nth-of-type(even) {  background-color: #dbdbdb;}
-
-                /* Changes the weight of each td cell within each odd row to bold */
-                table tr:nth-of-type(odd) td {  font-weight: bold;}
-
-                /* Collapses table borders to make the table appear continuous */
-                table {  border-collapse: collapse;}
-                td:not(:first-child) {width:80px} /*all columns except the first*/
-
-
-            </style>
-        <head>
-        <body>                 
-            <h2>%s</h2>
-            Aqui va texto adicional
-            <strong> %s </strong>
-        <body>
-    <html>
-    """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
-    f = open("file.html", "w")  # crea archivo html
-    f.write(html)  # Escribe en el archivo html
-    f.close()  # Guarda archivo html
-    return
-
-
-def htmlFloroTable(n, floro_product_lst, orders_query_lst, z_lst):
-    # *********************************************** HTML
-    # esta funcion crea la tabla html
-    # crea la lista de los productos de Floro
-
-    # 0. obtiene el nombre de los pedidos para el headerRow
-    header = ["PRODUCTO"]
-    header.append("TOTAL")
-    header.append("LBS")
-    # print header
-
-    # 1. obtiene a_lst iterando sobre a_product_id_lst
-    a_lst = []
-    for x in floro_product_lst:
-        a_lst.append(str(x['name']))
-
-    # 2. crea una lista de listas
-    headerRow = []
-    summaryCharRows = []
-    table = []
-
-    for x in range(len(a_lst)):  # iterando sobre los productos
-        if x == 0:
-            inicio = 0
-            fin = 0 + n
-        else:
-            inicio = x * n
-            fin = inicio + n
-        print ("inicio ", inicio)
-        print ("fin es: ", fin)
-        summaryCharRows = []
-        summaryCharRows.append(a_lst[x])
-        summaryCharRows.append(sum(z_lst[inicio:fin]))
-        summaryCharRows.append("        ")
-        table.append(summaryCharRows)
-        print ("table floro is:", table)  # imprime la tabla como una lista de listas
-
-    # Crea la tabla en excel
-    # Crea el libro y toma la hoja activa como hoja de trabajo
-    wb = Workbook()
-    ws = wb.active
-
-    data = [
-        ['Apples', 10000, 5000, 8000, 6000],
-        ['Pears', 2000, 3000, 4000, 5000],
-        ['Bananas', 6000, 6000, 6500, 6000],
-        ['Oranges', 500, 300, 200, 700],
-    ]
-    lastCell = str(len(a_lst) + 1)  # Find the last row with data
-    lastCell = "C" + lastCell  # Add the column by concatenating
-    lastCell = "A1:" + lastCell  # Produce the range of cells which contains the data
-    print lastCell
-    # add column headings. NB. these must be strings
-    # ws.append(["Fruit", "2011", "2012", "2013", "2014"])
-    ws.append(header)
-    for row in table:
-        ws.append(row)
-
-    tab = Table(displayName="Table1", ref=lastCell)
-
-    # Add a default style with striped rows and banded columns
-    style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False,
-                           showLastColumn=False, showRowStripes=True, showColumnStripes=True)
-    tab.tableStyleInfo = style
-    ws.add_table(tab)
-    wb.save("table.xlsx")
-
-    # 3. crea el archivo html
-
-    htmlcode = HTML.table(table, header_row=header)  # crea el codigo html de la tabla
-    # print htmlcode                                                        # impresion de prueba codigo html de la tabla
-    myText = "Este es el pedido para Floro"
-    html = """
-    <html> 
-        <head>
-            <title>Pedido para Floro</title>
-            <style type="text/css">
-                /**/
-                h2 {font-family:Helvetica; color: #545454}
-                /* Changes the font family */
-                table {font-family:Helvetica;}
-
-                /* Make cells a bit taller and set border color */
-                td, th { border: 1px solid #696969; height: 30px; text-align: left;}
-
-                th {font-size: small; /*font size for header row*/
-                font-weight: bold; /* Make sure they're bold */
-                color:#696969; /*font color*/
-
-}
-
-                /* Changes the background color of every odd row to light gray */
-                /*table th:nth-child(1) { font-weight: bold}*/
-
-                /* Changes the background color of every odd row to light gray */
-                /*table tr:nth-of-type(odd) {  background-color: #dbdbdb;}*/
-
-                /* Changes the background color of every odd column to light gray */
-                table td:nth-of-type(even) {  background-color: #dbdbdb;}
-
-                /* Changes the weight of each td cell within each odd row to bold */
-                table tr:nth-of-type(odd) td {  font-weight: bold;}
-
-                /* Collapses table borders to make the table appear continuous */
-                table {  border-collapse: collapse;}
-                td:not(:first-child) {width:80px} /*all columns except the first*/
-
-            </style>
-        <head>
-        <body>
-            <h2>%s</h2>
-            Aqui va texto adicional
-            <strong> %s </strong>
-        <body>
-    <html>
-    """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
-    f = open("floro.html", "w")  # crea archivo html
-    f.write(html)  # Escribe en el archivo html
-    f.close()  # Guarda archivo html
-    return
-
-
-def htmlEduardoTable(n, eduardo_product_lst, orders_query_lst, z_lst):
-    # *********************************************** HTML
-    # esta funcion crea la tabla html
-    # crea la lista de los productos de Floro
-
-    # 0. obtiene el nombre de los pedidos para el headerRow
-    header = ["PRODUCTO"]
-    # for x in orders_query_lst:
-    #   header.append(str(x['po_number']))
-
-    header.append("TOTAL")
-    header.append("LBS")
-    # print header
-    # 1. obtiene a_lst iterando sobre a_product_id_lst
-    a_lst = []
-    # print a_product_id_lst
-    # print len(a_product_id_lst)
-    for x in eduardo_product_lst:
-        a_lst.append(str(x['name']))
-        # print x['name']
-    # print ("floro_lst es: ",a_lst)
-    # print ("n el numero de pedidos es: ", n)
-    # print ("tamano de z es: ", len(z_lst))
-    # print ("tamano de a es: ", len(a_lst))
-
-    # 2. crea una lista de listas
-    headerRow = []
-    summaryCharRows = []
-    table = []
-
-    for x in range(len(a_lst)):  # iterando sobre los productos
-        if x == 0:
-            inicio = 0
-            fin = 0 + n
-        else:
-            inicio = x * n
-            fin = inicio + n
-
-        print ("inicio ", inicio)
-        print ("fin es: ", fin)
-        summaryCharRows = []
-        summaryCharRows.append(a_lst[x])
-        # for y in range (inicio, fin):
-        # summaryCharRows.append(z_lst[y])
-        # summaryCharRows.append("        ")
-
-        summaryCharRows.append(sum(z_lst[inicio:fin]))
-        summaryCharRows.append("        ")
-        table.append(summaryCharRows)
-        # print ("table is:" , table)                                        #imprime la tabla como una lista de listas
-
-    # 3. crea el archivo html
-
-    htmlcode = HTML.table(table, header_row=header)  # crea el codigo html de la tabla
-    # print htmlcode                                                        # impresion de prueba codigo html de la tabla
-    myText = "Este es el pedido para Eduardo"
-    html = """
-    <html> 
-        <head>
-            <title>Pedido para Eduardo</title>
-            <style type="text/css">
-                /**/
-                h2 {font-family:Helvetica; color: #545454}
-                /* Changes the font family */
-                table {font-family:Helvetica;}
-
-                /* Make cells a bit taller and set border color */
-                td, th { border: 1px solid #696969; height: 30px; text-align: left;}
-
-                th {font-size: small; /*font size for header row*/
-                font-weight: bold; /* Make sure they're bold */
-                color:#696969; /*font color*/
-
-}
-
-                /* Changes the background color of every odd row to light gray */
-                /*table th:nth-child(1) { font-weight: bold}*/
-
-                /* Changes the background color of every odd row to light gray */
-                /*table tr:nth-of-type(odd) {  background-color: #dbdbdb;}*/
-
-                /* Changes the background color of every odd column to light gray */
-                table td:nth-of-type(even) {  background-color: #dbdbdb;}
-
-                /* Changes the weight of each td cell within each odd row to bold */
-                table tr:nth-of-type(odd) td {  font-weight: bold;}
-
-                /* Collapses table borders to make the table appear continuous */
-                table {  border-collapse: collapse;}
-                td:not(:first-child) {width:80px} /*all columns except the first*/
-
-
-            </style>
-        <head>
-        <body>                 
-            <h2>%s</h2>
-            Aqui va texto adicional
-            <strong> %s </strong>
-        <body>
-    <html>
-    """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
-    f = open("eduardo.html", "w")  # crea archivo html
-    f.write(html)  # Escribe en el archivo html
-    f.close()  # Guarda archivo html
-    return
-
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 def loadFormPoDetailQuery():
     # this function uploads and handles the form based on db.po_detail's table also uploads a query which select in reverse order all data in db.po_detail table
