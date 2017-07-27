@@ -64,8 +64,9 @@ def excelTables(chartPerSupplier_lst, supplierId):
     # add column headings. NB. these must be strings
     # AGREGA los header de la tabla Excel
     ws.append(header)
-    for row in chartPerSupplier_lst:
-        ws.append(row)
+    for row in chartPerSupplier_lst: # REPITA para cada sublista del consolidado
+        del row[1:len(row)-1]   # ELIMINE lo que no sea nombre y el totol
+        ws.append(row)          # AGREGUE al libro de excel
 
     tab = Table(displayName="Table1", ref=lastCell)
 

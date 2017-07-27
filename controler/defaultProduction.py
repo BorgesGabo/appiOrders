@@ -17,6 +17,9 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 from prettytable import PrettyTable
 from prettytable import ALL
 
+def inicio():
+    texto ="esta es una prueba de funcion solo txto"
+    return texto
 
 def processPo():
     # this function generates a form with date types and query the db between the 2 dates
