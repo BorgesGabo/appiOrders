@@ -29,7 +29,7 @@ def ppal(queryBase):
         pdctsFiltered = filterSup(queryBase, i, chartGenerator2(queryBase, po_lst, ids_lst, names_lst))
         print "lista de FILTRADO", pdctsFiltered
         if len(pdctsFiltered) != 0:
-            excel_lst = excelTables(pdctsFiltered, i)
+            excel_lst = excelTables(pdctsFiltered, i)  # CREA los archivos de excel
 
     # GENERA el archivo html
     html_lst = htmlGenerator(po_lst, chartGenerator2(queryBase, po_lst, ids_lst, names_lst))
@@ -40,8 +40,13 @@ def ppal(queryBase):
 def excelTables(chartPerSupplier_lst, supplierId):
     # Esta funcion crea la tabla en excel de los productos por proveedor
     #   INPUT:
-    #           chartPerSupplier_lst ->
+    #           chartPerSupplier_lst -> Es el consolidado de todos los pedidos dentro del rango
     #                   ejemplo: [['Acelga organica', 1000, 500, 1500], ['Banano Bocadillo organico', 0, 6, 6], ['Banano organico', 18, 0, 18], ['Brocoli organico', 0, 500, 500], ...]
+    #           supplierId -> int: representa el customer.id
+    # OUTPUT:
+    #           3 archivos en excel: "Lista de floro.xlsx", "Lista de eduardo.xlsx", "Lista de otros.xlsx"
+
+
     # CREA el libro de excel y toma la hoja como activa
     wb = Workbook()
     ws = wb.active
@@ -50,6 +55,7 @@ def excelTables(chartPerSupplier_lst, supplierId):
     header = ["PRODUCTO"]
     header.append("TOTAL")
     header.append("LBS")
+    # ESTA lista es para hacer pruebas, se utiliza para reemplazar charPerSupplier_lst y verificar que funciona correctamente el codigo de aqui hasta el final de la funcion
 
     data = [
         ['Apples', 10000, 5000, 8000, 6000],
@@ -92,6 +98,10 @@ def filterSup(queryBase, supplierId, summaryChart_lst):
     #                      ejemplo: ((((po.id = po_detail.po_id) AND (po_detail.product_id = product.id)) AND (po.date >= '2017-05-23 17:43:11')) AND (po.date <= '2017-05-26 15:16:00'))
     #       supplierId: int -> es el product.supplier_id
     #       summaryChart_lst: -> es el consolidado de productos para todos los pedidos
+    # OUTPUT:
+    #       chartPerSupplier_lst -> tiene la misma estructura del summaryChart_lst que es el consolidado de pedidos
+    #                               la unica diferencia es que aparecen los productos por proveedor elimimando los de los demas
+    #                           ejemplo: [['Acelga organica', 1000, 500, 1500], ['Banano Bocadillo organico', 0, 6, 6], ['Banano organico', 18, 0, 18],...]
 
     # OBTIENE los product.name de los pedidos dentro de las fechas pero adicionalmente los filtra por proveedor
     querySupplier = queryBase
