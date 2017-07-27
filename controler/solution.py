@@ -21,8 +21,8 @@ def ppal(queryBase):
     print "estos son los product.name sin repetir: ", "\n", names_lst, "\n"
 
     # OBTIENE el consolidado total de los pedidos
-    chart_lst = chartGenerator2(queryBase, po_lst, ids_lst, names_lst)
-    print "este es el consolidado: ", "\n", chart_lst, "\n"
+    #chart_lst = chartGenerator2(queryBase, po_lst, ids_lst, names_lst)
+    #print "este es el consolidado: ", "\n", chart_lst, "\n"
 
     # FILTRA los nombres por proveeedor
     for i in range(1, 4):
