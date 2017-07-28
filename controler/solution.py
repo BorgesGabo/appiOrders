@@ -310,7 +310,7 @@ def htmlGenerator(po_lst, chart_lst):
                 <body>
             <html>
             """ % (myText, htmlcode)  # Variable que sera reemplazada por %s en el orden que aparece
-    f = open("consolidado-Pedidos.html", "w")  # crea archivo html
+    f = open("consolidado-Pedidos.html", "w")  # crea el archivo html
     f.write(html)  # Escribe en el archivo html
     f.close()  # Guarda archivo html
     print "*" * 10, "FIN HTML GENERATOR", "*" * 10
